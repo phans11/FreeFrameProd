@@ -12,7 +12,7 @@ public class ConfigurationMessages {
 
     public void getConfig() {
         this.config = new ConfigAPI("plugins/FreeFrame/", "config.yml", (Plugin)this.freeframe);
-        this.config.getConfig().addDefault("freeframe.prefix", (Object)"&eFreeFrame &8\u00bb");
+        this.config.getConfig().addDefault("freeframe.prefix", (Object)"&eCorno &8\u00bb");
         this.config.getConfig().addDefault("freeframe.reload.permission", (Object)Var.PERMISSION_FREEFRAME_RELOAD);
         this.config.getConfig().addDefault("freeframe.reload.message", (Object)"%prefix% &aFreeFrame successfully reloaded all configs.");
         this.config.getConfig().addDefault("freeframe.usage", (Object)"&cUsage: &7Place an item frame and add an item to it. That's it! Here you have your own &eFreeFrame");

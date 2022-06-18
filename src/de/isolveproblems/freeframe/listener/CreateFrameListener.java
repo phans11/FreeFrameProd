@@ -46,9 +46,13 @@ implements Listener {
             itemstack.setAmount(amount);
         }
         Inventory itemframe = Bukkit.createInventory(null, (int)9, (String)this.freeframe.getPrefix());
+        itemframe.setItem(1, itemstack);
         itemframe.setItem(2, itemstack);
+        itemframe.setItem(3, itemstack);
         itemframe.setItem(4, itemstack);
+        itemframe.setItem(5, itemstack);
         itemframe.setItem(6, itemstack);
+        itemframe.setItem(7, itemstack);
         player.openInventory(itemframe);
     }
 }
