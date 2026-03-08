@@ -17,6 +17,16 @@ Spigot-Plugin fuer ItemFrame-Shops mit Free- und Preis-Mode.
 8. In-Game Setup-Wand + Editor-GUI
 9. PlaceholderAPI-Unterstuetzung (optional)
 10. Storage-Backends: YAML, SQLite, MySQL
+11. Chest-basiertes Restocking
+12. Mehrere Kaufprofile pro Frame
+13. Rabatt-System ueber Permissions
+14. Transaktionsschutz gegen Klick-Races
+15. Frame- und Spieler-Statistiken
+16. Frame-Typen: `FREE`, `SHOP`, `LIMITED`, `ADMIN_ONLY`, `PREVIEW_ONLY`
+17. Mehrsprachige Messages (`messages_en.yml`, `messages_de.yml`)
+18. Backup-, Restore- und Doctor-Tools
+19. Discord/Webhook-Exports
+20. WorldGuard/GriefPrevention-Hooks (best effort)
 
 ## Commands
 - `/freeframe help`
@@ -27,6 +37,14 @@ Spigot-Plugin fuer ItemFrame-Shops mit Free- und Preis-Mode.
 - `/freeframe remove <id>`
 - `/freeframe setprice <id> <price> [currency]`
 - `/freeframe setstock <id> <stock> [max]`
+- `/freeframe settype <id> <type>`
+- `/freeframe setprofile <id> <slot> <amount> <price> [displayName]`
+- `/freeframe clearprofiles <id>`
+- `/freeframe linkchest <id>`
+- `/freeframe stats <frame|player> <target>`
+- `/freeframe backup`
+- `/freeframe restore <file>`
+- `/freeframe doctor`
 - `/freeframe wand`
 - `/freeframe storage <yaml|sqlite|mysql>`
 - `/freeframe export`
@@ -39,6 +57,9 @@ Spigot-Plugin fuer ItemFrame-Shops mit Free- und Preis-Mode.
 - `freeframe.destroy`
 - `freeframe.admin`
 - `freeframe.access.bypass`
+- `freeframe.adminonly`
+- `freeframe.discount.vip`
+- `freeframe.discount.mvp`
 
 ## Build
 ```bash
@@ -64,9 +85,13 @@ mvn clean verify -P release
 - Display/Hologramm: `freeframe.display.*` (Offset, ArmorStand-Eigenschaften, Sichtbarkeit)
 - Economy: `freeframe.economy.*` (Owner-Payout, Verhalten ohne Vault)
 - Logging/Export: `freeframe.logging.*` (Aktivierung, Unterordner, Dateiname)
+- Webhooks: `freeframe.webhooks.*` (Discord/Webhook Ziel)
 - Limits/Stock: `freeframe.limits.*`, `freeframe.stock.*`
+- Kaufprofile/Typen: `freeframe.profiles.*`, `freeframe.types.*`
 - Restriktionen: `freeframe.restrictions.*` (Welten und Cuboid-Regionen)
+- Integrationen: `freeframe.integrations.*` (WorldGuard, GriefPrevention)
 - Item-Policy: `freeframe.items.*` (Blacklist/Whitelist)
+- Lokalisierung: `freeframe.localization.*`
 
 ## CI
 - Workflow: `.github/workflows/ci.yml`

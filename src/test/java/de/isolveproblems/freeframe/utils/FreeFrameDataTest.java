@@ -1,8 +1,12 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.api.FrameType;
+import de.isolveproblems.freeframe.api.PurchaseProfile;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -22,7 +26,20 @@ class FreeFrameDataTest {
             "STONE",
             19.99D,
             "$",
-            true
+            true,
+            32,
+            64,
+            true,
+            12345L,
+            98765L,
+            42.50D,
+            "entity-1",
+            FrameType.LIMITED,
+            new BlockReference("world", 5, 65, 6),
+            Arrays.asList(
+                new PurchaseProfile(2, 1, 19.99D, "&aSingle"),
+                new PurchaseProfile(4, 16, 299.99D, "&bBulk")
+            )
         );
 
         YamlConfiguration configuration = new YamlConfiguration();
@@ -41,9 +58,14 @@ class FreeFrameDataTest {
         assertEquals(19.99D, restored.getPrice());
         assertEquals("$", restored.getCurrency());
         assertEquals(true, restored.isActive());
-        assertEquals(64, restored.getStock());
+        assertEquals(32, restored.getStock());
         assertEquals(64, restored.getMaxStock());
-        assertEquals(0.0D, restored.getRevenueTotal());
+        assertEquals(42.50D, restored.getRevenueTotal());
+        assertEquals("entity-1", restored.getDisplayEntityUuid());
+        assertEquals(FrameType.LIMITED, restored.getFrameType());
+        assertEquals(new BlockReference("world", 5, 65, 6), restored.getLinkedChest());
+        assertEquals(2, restored.getPurchaseProfiles().size());
+        assertEquals(16, restored.findProfileBySlot(4).getAmount());
     }
 
     @Test

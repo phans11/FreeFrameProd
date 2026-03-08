@@ -1,19 +1,38 @@
 package de.isolveproblems.freeframe;
 
+import de.isolveproblems.freeframe.api.BackupService;
+import de.isolveproblems.freeframe.api.ChestRestockService;
+import de.isolveproblems.freeframe.api.DiscountService;
+import de.isolveproblems.freeframe.api.LocalizationService;
+import de.isolveproblems.freeframe.api.PurchaseProfile;
+import de.isolveproblems.freeframe.api.PurchaseProcessor;
+import de.isolveproblems.freeframe.api.RegionAccessService;
+import de.isolveproblems.freeframe.api.StatisticsService;
+import de.isolveproblems.freeframe.api.TransactionGuard;
+import de.isolveproblems.freeframe.api.WebhookExportService;
 import de.isolveproblems.freeframe.economy.VaultEconomyService;
 import de.isolveproblems.freeframe.utils.AmountValidator;
 import de.isolveproblems.freeframe.utils.AuditLogger;
+import de.isolveproblems.freeframe.utils.ChestInventoryRestockService;
+import de.isolveproblems.freeframe.utils.CompositeRegionAccessService;
 import de.isolveproblems.freeframe.utils.ConfigurationMessages;
+import de.isolveproblems.freeframe.utils.DefaultDiscountService;
+import de.isolveproblems.freeframe.utils.DefaultPurchaseProcessor;
 import de.isolveproblems.freeframe.utils.FrameDisplayService;
 import de.isolveproblems.freeframe.utils.FrameRegistry;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
+import de.isolveproblems.freeframe.utils.InMemoryTransactionGuard;
 import de.isolveproblems.freeframe.utils.InteractionLimiter;
 import de.isolveproblems.freeframe.utils.ItemPolicy;
+import de.isolveproblems.freeframe.utils.LocalBackupService;
+import de.isolveproblems.freeframe.utils.LocalStatisticsService;
 import de.isolveproblems.freeframe.utils.MetricsTracker;
 import de.isolveproblems.freeframe.utils.PlaceholderSupport;
 import de.isolveproblems.freeframe.utils.PurchaseWindowLimiter;
 import de.isolveproblems.freeframe.utils.RegionRestrictionService;
 import de.isolveproblems.freeframe.utils.RegisterClasses;
+import de.isolveproblems.freeframe.utils.WebhookNotifier;
+import de.isolveproblems.freeframe.utils.YamlLocalizationService;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -44,6 +63,15 @@ public class FreeFrame extends JavaPlugin {
     private AuditLogger auditLogger;
     private PlaceholderSupport placeholderSupport;
     private FrameDisplayService displayService;
+    private LocalizationService localizationService;
+    private DiscountService discountService;
+    private ChestRestockService chestRestockService;
+    private StatisticsService statisticsService;
+    private BackupService backupService;
+    private RegionAccessService regionAccessService;
+    private WebhookExportService webhookExportService;
+    private TransactionGuard transactionGuard;
+    private PurchaseProcessor purchaseProcessor;
 
     @Override
     public void onEnable() {
@@ -56,6 +84,10 @@ public class FreeFrame extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (this.statisticsService != null) {
+            this.statisticsService.save();
+        }
+
         if (this.frameRegistry != null) {
             this.frameRegistry.saveToConfig();
         }
@@ -83,6 +115,20 @@ public class FreeFrame extends JavaPlugin {
         this.regionRestrictionService = new RegionRestrictionService();
         this.auditLogger = new AuditLogger(this);
         this.displayService = new FrameDisplayService(this);
+        this.localizationService = new YamlLocalizationService(this);
+        this.discountService = new DefaultDiscountService(this);
+        this.chestRestockService = new ChestInventoryRestockService();
+        this.statisticsService = new LocalStatisticsService(this.getDataFolder());
+        this.backupService = new LocalBackupService(this);
+        this.transactionGuard = new InMemoryTransactionGuard();
+        this.webhookExportService = new WebhookNotifier(this);
+        this.regionAccessService = new CompositeRegionAccessService(this, this.regionRestrictionService);
+        this.purchaseProcessor = new DefaultPurchaseProcessor(
+            this,
+            this.discountService,
+            this.chestRestockService,
+            this.statisticsService
+        );
 
         this.frameRegistry = new FrameRegistry(this);
         this.frameRegistry.loadFromConfig();
@@ -101,6 +147,25 @@ public class FreeFrame extends JavaPlugin {
         this.initializeOptionalBStats();
         this.registrar.registerCommands();
         this.registrar.registerListeners();
+    }
+
+    public void reloadRuntimeState() {
+        this.configHandler.reload();
+        this.placeholderSupport = new PlaceholderSupport(this);
+        this.localizationService = new YamlLocalizationService(this);
+        this.discountService = new DefaultDiscountService(this);
+        this.chestRestockService = new ChestInventoryRestockService();
+        this.economyService.initialize();
+        this.regionAccessService = new CompositeRegionAccessService(this, this.regionRestrictionService);
+        this.webhookExportService = new WebhookNotifier(this);
+        this.purchaseProcessor = new DefaultPurchaseProcessor(
+            this,
+            this.discountService,
+            this.chestRestockService,
+            this.statisticsService
+        );
+        this.frameRegistry.loadFromConfig();
+        this.displayService.refreshAll(this.frameRegistry.listFrames());
     }
 
     private void initializeOptionalBStats() {
@@ -172,6 +237,42 @@ public class FreeFrame extends JavaPlugin {
         return this.displayService;
     }
 
+    public LocalizationService getLocalizationService() {
+        return this.localizationService;
+    }
+
+    public DiscountService getDiscountService() {
+        return this.discountService;
+    }
+
+    public ChestRestockService getChestRestockService() {
+        return this.chestRestockService;
+    }
+
+    public StatisticsService getStatisticsService() {
+        return this.statisticsService;
+    }
+
+    public BackupService getBackupService() {
+        return this.backupService;
+    }
+
+    public RegionAccessService getRegionAccessService() {
+        return this.regionAccessService;
+    }
+
+    public WebhookExportService getWebhookExportService() {
+        return this.webhookExportService;
+    }
+
+    public TransactionGuard getTransactionGuard() {
+        return this.transactionGuard;
+    }
+
+    public PurchaseProcessor getPurchaseProcessor() {
+        return this.purchaseProcessor;
+    }
+
     public FileConfiguration getPluginConfig() {
         return this.configHandler.getConfig();
     }
@@ -220,6 +321,50 @@ public class FreeFrame extends JavaPlugin {
         return Collections.unmodifiableList(slots);
     }
 
+    public List<PurchaseProfile> getDefaultPurchaseProfiles(double basePrice) {
+        List<Integer> slots = this.getSaleSlots();
+        List<Integer> amounts = this.getPluginConfig().getIntegerList("freeframe.profiles.amounts");
+        List<Double> multipliers = this.readDoubleList("freeframe.profiles.priceMultipliers");
+        List<PurchaseProfile> profiles = new ArrayList<PurchaseProfile>();
+
+        for (int index = 0; index < slots.size(); index++) {
+            int slot = slots.get(index);
+            int amount = index < amounts.size() ? AmountValidator.sanitize(amounts.get(index)) : this.getConfiguredItemAmount();
+            double multiplier = index < multipliers.size() ? Math.max(0.0D, multipliers.get(index)) : Math.max(1.0D, amount);
+            double price = Math.max(0.0D, basePrice * multiplier);
+            profiles.add(new PurchaseProfile(slot, amount, price, ""));
+        }
+
+        if (profiles.isEmpty()) {
+            profiles.add(new PurchaseProfile(4, this.getConfiguredItemAmount(), Math.max(0.0D, basePrice), ""));
+        }
+        return profiles;
+    }
+
+    private List<Double> readDoubleList(String path) {
+        List<?> raw = this.getPluginConfig().getList(path);
+        List<Double> doubles = new ArrayList<Double>();
+        if (raw == null) {
+            return doubles;
+        }
+
+        for (Object entry : raw) {
+            if (entry instanceof Number) {
+                doubles.add(((Number) entry).doubleValue());
+                continue;
+            }
+
+            if (entry != null) {
+                try {
+                    doubles.add(Double.parseDouble(String.valueOf(entry)));
+                } catch (NumberFormatException ignored) {
+                    // Ignore invalid values and keep defaults stable.
+                }
+            }
+        }
+        return doubles;
+    }
+
     public boolean isSaleSlot(int rawSlot) {
         return this.getSaleSlots().contains(rawSlot);
     }
@@ -263,12 +408,14 @@ public class FreeFrame extends JavaPlugin {
     }
 
     public String getMessage(String path, String fallback) {
-        String raw = this.getPluginConfig().getString(path, fallback);
-        return this.formatMessage(raw, null);
+        return this.getMessage(path, fallback, null);
     }
 
     public String getMessage(String path, String fallback, Player player) {
-        String raw = this.getPluginConfig().getString(path, fallback);
+        String configuredFallback = this.getPluginConfig().getString(path, fallback);
+        String raw = this.localizationService == null
+            ? configuredFallback
+            : this.localizationService.resolveMessage(player, path, configuredFallback);
         return this.formatMessage(raw, player);
     }
 

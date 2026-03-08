@@ -3,12 +3,12 @@ version: ${project.version}
 main: de.isolveproblems.freeframe.FreeFrame
 description: Sell items for free in an ItemFrame
 authors: [isolveproblems]
-softdepend: [Vault, PlaceholderAPI]
+softdepend: [Vault, PlaceholderAPI, WorldGuard, GriefPrevention]
 
 commands:
   freeframe:
     description: Main command for FreeFrame
-    usage: /freeframe <help|info|reload|list|inspect|remove|setprice|setstock|wand|storage|export|migrate|repair|debug>
+    usage: /freeframe <help|info|reload|list|inspect|remove|setprice|setstock|settype|setprofile|clearprofiles|linkchest|stats|backup|restore|doctor|wand|storage|export|migrate|repair|debug>
     aliases: [ff]
 
 permissions:
@@ -28,3 +28,12 @@ permissions:
   freeframe.access.bypass:
     description: Bypass owner-based frame access restrictions
     default: op
+  freeframe.adminonly:
+    description: Allows use of admin-only FreeFrames
+    default: op
+  freeframe.discount.vip:
+    description: Applies the VIP discount profile
+    default: false
+  freeframe.discount.mvp:
+    description: Applies the MVP discount profile
+    default: false

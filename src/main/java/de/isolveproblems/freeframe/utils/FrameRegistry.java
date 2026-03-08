@@ -1,6 +1,8 @@
 package de.isolveproblems.freeframe.utils;
 
 import de.isolveproblems.freeframe.FreeFrame;
+import de.isolveproblems.freeframe.api.FrameType;
+import de.isolveproblems.freeframe.api.PurchaseProfile;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -320,7 +322,10 @@ public class FrameRegistry {
             Math.max(0L, this.freeframe.getPluginConfig().getLong("freeframe.stock.autoRefill.defaultIntervalMillis", 300_000L)),
             System.currentTimeMillis(),
             0.0D,
-            ""
+            "",
+            FrameType.fromString(this.freeframe.getPluginConfig().getString("freeframe.types.default", "SHOP")),
+            null,
+            this.defaultPurchaseProfiles()
         );
     }
 
@@ -382,6 +387,16 @@ public class FrameRegistry {
             changed = true;
         }
 
+        if (data.getFrameType() == null) {
+            data.setFrameType(FrameType.fromString(this.freeframe.getPluginConfig().getString("freeframe.types.default", "SHOP")));
+            changed = true;
+        }
+
+        if (data.getPurchaseProfiles().isEmpty()) {
+            data.setPurchaseProfiles(this.defaultPurchaseProfiles());
+            changed = true;
+        }
+
         return changed;
     }
 
@@ -421,6 +436,10 @@ public class FrameRegistry {
     private String defaultCurrency() {
         String currency = this.freeframe.getPluginConfig().getString("freeframe.default.currency", "$");
         return currency == null || currency.trim().isEmpty() ? "$" : currency.trim();
+    }
+
+    private List<PurchaseProfile> defaultPurchaseProfiles() {
+        return this.freeframe.getDefaultPurchaseProfiles(this.defaultPrice());
     }
 
     private boolean existsOnServer(FrameReference reference) {

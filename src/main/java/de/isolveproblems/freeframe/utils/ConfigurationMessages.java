@@ -50,6 +50,12 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.gui.saleSlots", Arrays.asList(2, 4, 6));
         config.addDefault("freeframe.gui.closeAfterPurchase", false);
         config.addDefault("freeframe.gui.dropOnFullInventory", true);
+        config.addDefault("freeframe.profiles.amounts", Arrays.asList(1, 16, 64));
+        config.addDefault("freeframe.profiles.priceMultipliers", Arrays.asList(1.0D, 16.0D, 64.0D));
+        config.addDefault("freeframe.types.default", "SHOP");
+        config.addDefault("freeframe.types.adminOnlyPermission", "freeframe.adminonly");
+        config.addDefault("freeframe.chestRestock.enabled", true);
+        config.addDefault("freeframe.chestRestock.requireLinkedChest", false);
 
         config.addDefault("freeframe.access.requireOwner", false);
         config.addDefault("freeframe.access.bypassPermission", "freeframe.access.bypass");
@@ -70,8 +76,11 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.purchase.inventoryFull", "%prefix% &cYour inventory is full.");
         config.addDefault("freeframe.purchase.stockOut", "%prefix% &cThis frame is out of stock.");
         config.addDefault("freeframe.purchase.limited", "%prefix% &cPurchase limit reached. Try again later.");
+        config.addDefault("freeframe.purchase.busy", "%prefix% &cThis frame is processing another transaction.");
 
         config.addDefault("freeframe.frame.inactive", "%prefix% &cThis FreeFrame is currently inactive.");
+        config.addDefault("freeframe.types.previewOnly", "%prefix% &7This frame is preview-only.");
+        config.addDefault("freeframe.types.adminOnlyDenied", "%prefix% &cThis frame is restricted to admins.");
 
         config.addDefault("freeframe.metrics.bstatsPluginId", 0);
         config.addDefault("freeframe.placeholderapi.enabled", true);
@@ -79,6 +88,8 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.economy.allowWithoutVault", false);
         config.addDefault("freeframe.economy.payOwner", true);
         config.addDefault("freeframe.economy.payOwnerOnSelfPurchase", false);
+        config.addDefault("freeframe.discounts.permissions.freeframe.discount.vip", 10.0D);
+        config.addDefault("freeframe.discounts.permissions.freeframe.discount.mvp", 25.0D);
 
         config.addDefault("freeframe.stock.default", 64);
         config.addDefault("freeframe.stock.defaultMax", 64);
@@ -101,6 +112,8 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.logging.filePrefix", "audit");
         config.addDefault("freeframe.logging.extension", ".csv");
         config.addDefault("freeframe.logging.exportDirectory", "exports");
+        config.addDefault("freeframe.webhooks.enabled", false);
+        config.addDefault("freeframe.webhooks.discordUrl", "");
 
         config.addDefault("freeframe.display.enabled", true);
         config.addDefault("freeframe.display.removeOnDisable", false);
@@ -122,6 +135,12 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.restrictions.worlds.list", Collections.emptyList());
         config.addDefault("freeframe.restrictions.regions.enabled", false);
         config.addDefault("freeframe.restrictions.regions.list", Collections.emptyList());
+        config.addDefault("freeframe.integrations.worldguard.enabled", true);
+        config.addDefault("freeframe.integrations.worldguard.requiredFlag", "");
+        config.addDefault("freeframe.integrations.griefprevention.enabled", true);
+        config.addDefault("freeframe.integrations.griefprevention.mode", "allow-any");
+        config.addDefault("freeframe.localization.defaultLocale", "en");
+        config.addDefault("freeframe.localization.usePlayerLocale", true);
 
         config.addDefault("freeframe.setup.messages.emptyFrame", "%prefix% &cThe selected ItemFrame is empty.");
         config.addDefault("freeframe.setup.wandName", "&6FreeFrame Setup Wand");
@@ -177,6 +196,10 @@ public class ConfigurationMessages {
 
         config.addDefault("freeframe.frames", Collections.emptyList());
         config.addDefault("freeframe.framesData", Collections.emptyMap());
+        config.addDefault("freeframe.backup.created", "%prefix% &aBackup created: &e%file%&a.");
+        config.addDefault("freeframe.backup.restored", "%prefix% &aBackup restored: &e%file%&a.");
+        config.addDefault("freeframe.backup.failed", "%prefix% &cBackup action failed.");
+        config.addDefault("freeframe.stats.header", "%prefix% &6Statistics for &e%target%&6:");
 
         config.options().copyDefaults(true);
         this.validateConfigurationValues();
@@ -239,6 +262,46 @@ public class ConfigurationMessages {
         }
         config.set("freeframe.gui.saleSlots", sanitizedSlots);
 
+        List<Integer> profileAmounts = config.getIntegerList("freeframe.profiles.amounts");
+        List<Integer> sanitizedAmounts = new ArrayList<Integer>();
+        for (Integer amount : profileAmounts) {
+            if (amount != null && amount > 0) {
+                sanitizedAmounts.add(AmountValidator.sanitize(amount));
+            }
+        }
+        if (sanitizedAmounts.isEmpty()) {
+            sanitizedAmounts.add(1);
+            sanitizedAmounts.add(16);
+            sanitizedAmounts.add(64);
+        }
+        config.set("freeframe.profiles.amounts", sanitizedAmounts);
+
+        List<?> rawMultipliers = config.getList("freeframe.profiles.priceMultipliers");
+        List<Double> sanitizedMultipliers = new ArrayList<Double>();
+        if (rawMultipliers != null) {
+            for (Object raw : rawMultipliers) {
+                double parsed;
+                if (raw instanceof Number) {
+                    parsed = ((Number) raw).doubleValue();
+                } else {
+                    try {
+                        parsed = Double.parseDouble(String.valueOf(raw));
+                    } catch (NumberFormatException exception) {
+                        continue;
+                    }
+                }
+                if (parsed >= 0.0D) {
+                    sanitizedMultipliers.add(parsed);
+                }
+            }
+        }
+        if (sanitizedMultipliers.isEmpty()) {
+            sanitizedMultipliers.add(1.0D);
+            sanitizedMultipliers.add(16.0D);
+            sanitizedMultipliers.add(64.0D);
+        }
+        config.set("freeframe.profiles.priceMultipliers", sanitizedMultipliers);
+
         if (config.getInt("freeframe.stock.defaultMax", 64) < 1) {
             config.set("freeframe.stock.defaultMax", 64);
         }
@@ -298,6 +361,11 @@ public class ConfigurationMessages {
         }
         if (config.getDouble("freeframe.setup.editor.priceStep", 1.0D) <= 0.0D) {
             config.set("freeframe.setup.editor.priceStep", 1.0D);
+        }
+
+        String locale = config.getString("freeframe.localization.defaultLocale", "en");
+        if (locale == null || locale.trim().isEmpty()) {
+            config.set("freeframe.localization.defaultLocale", "en");
         }
 
         this.ensurePermissionNode("freeframe.reload.permission", "freeframe.reload");

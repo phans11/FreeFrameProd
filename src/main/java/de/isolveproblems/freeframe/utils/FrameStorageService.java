@@ -1,7 +1,11 @@
 package de.isolveproblems.freeframe.utils;
 
 import de.isolveproblems.freeframe.FreeFrame;
+import de.isolveproblems.freeframe.api.FrameType;
+import de.isolveproblems.freeframe.api.PurchaseProfile;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.sql.Connection;
@@ -110,7 +114,8 @@ public class FrameStorageService {
             this.ensureTable(connection, type);
 
             String query = "SELECT id,reference,owner_uuid,owner_name,created_at,item_type,price,currency,active,"
-                + "stock,max_stock,auto_refill,refill_interval,last_refill,revenue_total,display_entity_uuid "
+                + "stock,max_stock,auto_refill,refill_interval,last_refill,revenue_total,display_entity_uuid,"
+                + "frame_type,linked_chest,profiles_text "
                 + "FROM " + table;
 
             try (PreparedStatement statement = connection.prepareStatement(query);
@@ -139,7 +144,10 @@ public class FrameStorageService {
                         resultSet.getLong("refill_interval"),
                         resultSet.getLong("last_refill"),
                         resultSet.getDouble("revenue_total"),
-                        resultSet.getString("display_entity_uuid")
+                        resultSet.getString("display_entity_uuid"),
+                        FrameType.fromString(resultSet.getString("frame_type")),
+                        BlockReference.parse(resultSet.getString("linked_chest")),
+                        this.deserializeProfiles(resultSet.getString("profiles_text"))
                     );
                     loaded.put(data.getId(), data);
                 }
@@ -163,8 +171,9 @@ public class FrameStorageService {
 
             String insert = "INSERT INTO " + table + " ("
                 + "id,reference,owner_uuid,owner_name,created_at,item_type,price,currency,active,"
-                + "stock,max_stock,auto_refill,refill_interval,last_refill,revenue_total,display_entity_uuid"
-                + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                + "stock,max_stock,auto_refill,refill_interval,last_refill,revenue_total,display_entity_uuid,"
+                + "frame_type,linked_chest,profiles_text"
+                + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
             try (PreparedStatement statement = connection.prepareStatement(insert)) {
                 for (FreeFrameData data : frames) {
@@ -184,6 +193,9 @@ public class FrameStorageService {
                     statement.setLong(14, data.getLastRefillAt());
                     statement.setDouble(15, data.getRevenueTotal());
                     statement.setString(16, data.getDisplayEntityUuid());
+                    statement.setString(17, data.getFrameType().name());
+                    statement.setString(18, data.getLinkedChest() == null ? "" : data.getLinkedChest().serialize());
+                    statement.setString(19, this.serializeProfiles(data.getPurchaseProfiles()));
                     statement.addBatch();
                 }
                 statement.executeBatch();
@@ -217,7 +229,10 @@ public class FrameStorageService {
                 + "refill_interval BIGINT NOT NULL,"
                 + "last_refill BIGINT NOT NULL,"
                 + "revenue_total DOUBLE NOT NULL,"
-                + "display_entity_uuid VARCHAR(64) NOT NULL"
+                + "display_entity_uuid VARCHAR(64) NOT NULL,"
+                + "frame_type VARCHAR(32) NOT NULL DEFAULT 'SHOP',"
+                + "linked_chest VARCHAR(255) NOT NULL DEFAULT '',"
+                + "profiles_text LONGTEXT"
                 + ")";
         } else {
             create = "CREATE TABLE IF NOT EXISTS " + table + " ("
@@ -236,12 +251,27 @@ public class FrameStorageService {
                 + "refill_interval INTEGER NOT NULL,"
                 + "last_refill INTEGER NOT NULL,"
                 + "revenue_total REAL NOT NULL,"
-                + "display_entity_uuid TEXT NOT NULL"
+                + "display_entity_uuid TEXT NOT NULL,"
+                + "frame_type TEXT NOT NULL DEFAULT 'SHOP',"
+                + "linked_chest TEXT NOT NULL DEFAULT '',"
+                + "profiles_text TEXT"
                 + ")";
         }
 
         try (Statement statement = connection.createStatement()) {
             statement.execute(create);
+        }
+
+        this.ensureColumn(connection, table, "frame_type", type == StorageType.MYSQL ? "VARCHAR(32) NOT NULL DEFAULT 'SHOP'" : "TEXT NOT NULL DEFAULT 'SHOP'");
+        this.ensureColumn(connection, table, "linked_chest", type == StorageType.MYSQL ? "VARCHAR(255) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''");
+        this.ensureColumn(connection, table, "profiles_text", type == StorageType.MYSQL ? "LONGTEXT" : "TEXT");
+    }
+
+    private void ensureColumn(Connection connection, String table, String column, String definition) {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
+        } catch (Exception ignored) {
+            // Column already exists or backend does not require the migration.
         }
     }
 
@@ -294,5 +324,54 @@ public class FrameStorageService {
             return "freeframe_frames";
         }
         return sanitized;
+    }
+
+    private String serializeProfiles(List<PurchaseProfile> profiles) {
+        YamlConfiguration configuration = new YamlConfiguration();
+        if (profiles != null) {
+            int index = 0;
+            for (PurchaseProfile profile : profiles) {
+                ConfigurationSection section = configuration.createSection("profiles." + index++);
+                section.set("slot", profile.getSlot());
+                section.set("amount", profile.getAmount());
+                section.set("price", profile.getPrice());
+                section.set("displayName", profile.getDisplayName());
+            }
+        }
+        return configuration.saveToString();
+    }
+
+    private List<PurchaseProfile> deserializeProfiles(String serialized) {
+        List<PurchaseProfile> profiles = new ArrayList<PurchaseProfile>();
+        if (serialized == null || serialized.trim().isEmpty()) {
+            return profiles;
+        }
+
+        YamlConfiguration configuration = new YamlConfiguration();
+        try {
+            configuration.loadFromString(serialized);
+        } catch (InvalidConfigurationException exception) {
+            this.freeframe.getLogger().warning("Could not parse stored purchase profiles: " + exception.getMessage());
+            return profiles;
+        }
+
+        ConfigurationSection section = configuration.getConfigurationSection("profiles");
+        if (section == null) {
+            return profiles;
+        }
+
+        for (String key : section.getKeys(false)) {
+            ConfigurationSection profileSection = section.getConfigurationSection(key);
+            if (profileSection == null) {
+                continue;
+            }
+            profiles.add(new PurchaseProfile(
+                profileSection.getInt("slot", 0),
+                profileSection.getInt("amount", 1),
+                profileSection.getDouble("price", 0.0D),
+                profileSection.getString("displayName", "")
+            ));
+        }
+        return profiles;
     }
 }

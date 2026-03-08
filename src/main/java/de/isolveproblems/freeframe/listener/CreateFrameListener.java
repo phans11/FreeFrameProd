@@ -1,6 +1,7 @@
 package de.isolveproblems.freeframe.listener;
 
 import de.isolveproblems.freeframe.FreeFrame;
+import de.isolveproblems.freeframe.api.PurchaseProfile;
 import de.isolveproblems.freeframe.inventory.FreeFrameInventoryHolder;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
 import de.isolveproblems.freeframe.utils.ItemPolicy;
@@ -17,6 +18,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 public class CreateFrameListener implements Listener {
     private final FreeFrame freeframe;
@@ -96,7 +98,6 @@ public class CreateFrameListener implements Listener {
             this.freeframe.getDisplayService().refresh(frameData);
         }
 
-        int configuredAmount = this.freeframe.getConfiguredItemAmount();
         int availableAmount = Math.max(0, frameData.getStock());
         if (availableAmount <= 0) {
             player.sendMessage(this.freeframe.getMessage(
@@ -108,7 +109,12 @@ public class CreateFrameListener implements Listener {
             return;
         }
 
-        int displayAmount = Math.max(1, Math.min(configuredAmount, availableAmount));
+        PurchaseProfile previewProfile = frameData.getPurchaseProfiles().isEmpty()
+            ? null
+            : frameData.getPurchaseProfiles().get(0);
+        int displayAmount = previewProfile == null
+            ? Math.max(1, Math.min(this.freeframe.getConfiguredItemAmount(), availableAmount))
+            : Math.max(1, Math.min(previewProfile.getAmount(), availableAmount));
         if (this.freeframe.getPluginConfig().getBoolean("freeframe.compat.armorStandAmountFix", true)
             && itemStack.getType() == Material.ARMOR_STAND) {
             this.updateFrameItemAmount(itemFrame, itemStack, displayAmount);
@@ -146,10 +152,43 @@ public class CreateFrameListener implements Listener {
             this.freeframe.getGuiTitle(player)
         );
 
+        for (PurchaseProfile profile : frameData.getPurchaseProfiles()) {
+            if (profile.getSlot() < 0 || profile.getSlot() >= inventory.getSize()) {
+                continue;
+            }
+            inventory.setItem(profile.getSlot(), this.createProfileItem(displayItem, profile, currency));
+        }
+
         for (Integer slot : this.freeframe.getSaleSlots()) {
-            inventory.setItem(slot, displayItem.clone());
+            if (inventory.getItem(slot) == null) {
+                inventory.setItem(slot, displayItem.clone());
+            }
         }
         player.openInventory(inventory);
+    }
+
+    private ItemStack createProfileItem(ItemStack template, PurchaseProfile profile, String currency) {
+        ItemStack item = template.clone();
+        if (item.getMaxStackSize() > 1) {
+            item.setAmount(Math.max(1, Math.min(profile.getAmount(), item.getMaxStackSize())));
+        }
+
+        if (profile.getDisplayName() == null || profile.getDisplayName().trim().isEmpty()) {
+            return item;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+
+        String name = profile.getDisplayName()
+            .replace("%amount%", String.valueOf(profile.getAmount()))
+            .replace("%price%", String.format(java.util.Locale.ENGLISH, "%.2f", profile.getPrice()))
+            .replace("%currency%", currency == null ? "$" : currency);
+        meta.setDisplayName(this.freeframe.colorize(name));
+        item.setItemMeta(meta);
+        return item;
     }
 
     private boolean isAir(Material material) {

@@ -1,6 +1,13 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.api.FrameType;
+import de.isolveproblems.freeframe.api.PurchaseProfile;
 import org.bukkit.configuration.ConfigurationSection;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class FreeFrameData {
     private final String id;
@@ -19,17 +26,21 @@ public class FreeFrameData {
     private long lastRefillAt;
     private double revenueTotal;
     private String displayEntityUuid;
+    private FrameType frameType;
+    private BlockReference linkedChest;
+    private final List<PurchaseProfile> purchaseProfiles;
 
     public FreeFrameData(String id, FrameReference reference, String ownerUuid, String ownerName, long createdAt,
                          String itemType, double price, String currency, boolean active) {
         this(id, reference, ownerUuid, ownerName, createdAt, itemType, price, currency, active,
-            64, 64, false, 300_000L, System.currentTimeMillis(), 0.0D, "");
+            64, 64, false, 300_000L, System.currentTimeMillis(), 0.0D, "", FrameType.SHOP, null, new ArrayList<PurchaseProfile>());
     }
 
     public FreeFrameData(String id, FrameReference reference, String ownerUuid, String ownerName, long createdAt,
                          String itemType, double price, String currency, boolean active,
                          int stock, int maxStock, boolean autoRefill, long refillIntervalMillis,
-                         long lastRefillAt, double revenueTotal, String displayEntityUuid) {
+                         long lastRefillAt, double revenueTotal, String displayEntityUuid,
+                         FrameType frameType, BlockReference linkedChest, List<PurchaseProfile> purchaseProfiles) {
         this.id = id;
         this.reference = reference;
         this.ownerUuid = ownerUuid;
@@ -46,6 +57,10 @@ public class FreeFrameData {
         this.lastRefillAt = Math.max(0L, lastRefillAt);
         this.revenueTotal = Math.max(0.0D, revenueTotal);
         this.displayEntityUuid = displayEntityUuid == null ? "" : displayEntityUuid;
+        this.frameType = frameType == null ? FrameType.SHOP : frameType;
+        this.linkedChest = linkedChest;
+        this.purchaseProfiles = new ArrayList<PurchaseProfile>();
+        this.setPurchaseProfiles(purchaseProfiles);
 
         if (this.stock > this.maxStock) {
             this.stock = this.maxStock;
@@ -81,7 +96,10 @@ public class FreeFrameData {
             section.getLong("refillIntervalMillis", 300_000L),
             section.getLong("lastRefillAt", System.currentTimeMillis()),
             Math.max(0.0D, section.getDouble("revenueTotal", 0.0D)),
-            section.getString("displayEntityUuid", "")
+            section.getString("displayEntityUuid", ""),
+            FrameType.fromString(section.getString("frameType", "SHOP")),
+            BlockReference.parse(section.getString("linkedChest", "")),
+            readPurchaseProfiles(section.getConfigurationSection("profiles"))
         );
     }
 
@@ -101,6 +119,18 @@ public class FreeFrameData {
         section.set("lastRefillAt", this.lastRefillAt);
         section.set("revenueTotal", this.revenueTotal);
         section.set("displayEntityUuid", this.displayEntityUuid == null ? "" : this.displayEntityUuid);
+        section.set("frameType", this.frameType.name());
+        section.set("linkedChest", this.linkedChest == null ? "" : this.linkedChest.serialize());
+        section.set("profiles", null);
+        ConfigurationSection profilesSection = section.createSection("profiles");
+        int index = 0;
+        for (PurchaseProfile profile : this.purchaseProfiles) {
+            ConfigurationSection entry = profilesSection.createSection(String.valueOf(index++));
+            entry.set("slot", profile.getSlot());
+            entry.set("amount", profile.getAmount());
+            entry.set("price", profile.getPrice());
+            entry.set("displayName", profile.getDisplayName());
+        }
     }
 
     public boolean applyAutoRefillIfDue(long now) {
@@ -260,7 +290,70 @@ public class FreeFrameData {
         this.displayEntityUuid = displayEntityUuid == null ? "" : displayEntityUuid;
     }
 
+    public FrameType getFrameType() {
+        return this.frameType;
+    }
+
+    public void setFrameType(FrameType frameType) {
+        this.frameType = frameType == null ? FrameType.SHOP : frameType;
+    }
+
+    public BlockReference getLinkedChest() {
+        return this.linkedChest;
+    }
+
+    public void setLinkedChest(BlockReference linkedChest) {
+        this.linkedChest = linkedChest;
+    }
+
+    public List<PurchaseProfile> getPurchaseProfiles() {
+        return Collections.unmodifiableList(this.purchaseProfiles);
+    }
+
+    public void setPurchaseProfiles(List<PurchaseProfile> profiles) {
+        this.purchaseProfiles.clear();
+        if (profiles != null) {
+            this.purchaseProfiles.addAll(profiles);
+        }
+        Collections.sort(this.purchaseProfiles, new Comparator<PurchaseProfile>() {
+            @Override
+            public int compare(PurchaseProfile left, PurchaseProfile right) {
+                return Integer.compare(left.getSlot(), right.getSlot());
+            }
+        });
+    }
+
+    public PurchaseProfile findProfileBySlot(int slot) {
+        for (PurchaseProfile profile : this.purchaseProfiles) {
+            if (profile.getSlot() == slot) {
+                return profile;
+            }
+        }
+        return null;
+    }
+
     public boolean isOwnedBy(String uuid) {
         return uuid != null && uuid.equalsIgnoreCase(this.ownerUuid);
+    }
+
+    private static List<PurchaseProfile> readPurchaseProfiles(ConfigurationSection section) {
+        List<PurchaseProfile> profiles = new ArrayList<PurchaseProfile>();
+        if (section == null) {
+            return profiles;
+        }
+
+        for (String key : section.getKeys(false)) {
+            ConfigurationSection profileSection = section.getConfigurationSection(key);
+            if (profileSection == null) {
+                continue;
+            }
+            profiles.add(new PurchaseProfile(
+                profileSection.getInt("slot", 0),
+                profileSection.getInt("amount", 1),
+                profileSection.getDouble("price", 0.0D),
+                profileSection.getString("displayName", "")
+            ));
+        }
+        return profiles;
     }
 }
