@@ -1,6 +1,7 @@
 package de.isolveproblems.freeframe.listener;
 
 import de.isolveproblems.freeframe.FreeFrame;
+import de.isolveproblems.freeframe.utils.FreeFrameData;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -29,13 +30,24 @@ public class DestroyFrameListener implements Listener {
         }
 
         ItemFrame itemFrame = (ItemFrame) hangingEntity;
-        if (!this.freeframe.getFrameRegistry().isTracked(itemFrame)) {
+        FreeFrameData frameData = this.freeframe.getFrameRegistry().findByFrame(itemFrame);
+        if (frameData == null) {
             return;
         }
 
         Player player = (Player) remover;
         if (!player.hasPermission(this.freeframe.getConfigHandler().getDestroyPermissionNode())) {
             player.sendMessage(this.freeframe.getErrorPermissionMessage());
+            event.setCancelled(true);
+            return;
+        }
+
+        if (!this.hasOwnerAccess(player, frameData)) {
+            this.freeframe.getMetricsTracker().incrementDeniedAccess();
+            player.sendMessage(this.freeframe.getMessage(
+                "freeframe.access.denied",
+                "%prefix% &cYou are not allowed to use this FreeFrame."
+            ));
             event.setCancelled(true);
             return;
         }
@@ -74,5 +86,17 @@ public class DestroyFrameListener implements Listener {
             && this.freeframe.getFrameRegistry().isTracked((ItemFrame) entity)) {
             event.setCancelled(true);
         }
+    }
+
+    private boolean hasOwnerAccess(Player player, FreeFrameData frameData) {
+        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.access.requireOwner", false)) {
+            return true;
+        }
+
+        if (player.hasPermission(this.freeframe.getConfigHandler().getAccessBypassPermissionNode())) {
+            return true;
+        }
+
+        return frameData.isOwnedBy(player.getUniqueId().toString());
     }
 }

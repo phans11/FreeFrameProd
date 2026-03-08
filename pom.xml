@@ -6,7 +6,7 @@
 
     <groupId>de.freeframe</groupId>
     <artifactId>FreeFrame</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
     <name>FreeFrame</name>
     <description>Sell items for free in an ItemFrame</description>
 

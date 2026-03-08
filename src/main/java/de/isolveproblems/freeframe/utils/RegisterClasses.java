@@ -33,6 +33,6 @@ public class RegisterClasses {
         pluginManager.registerEvents(new CreateFrameListener(this.freeframe), this.freeframe);
         pluginManager.registerEvents(new DestroyFrameListener(this.freeframe), this.freeframe);
         pluginManager.registerEvents(new FrameBreakCleanupListener(this.freeframe), this.freeframe);
-        pluginManager.registerEvents(new FrameInventoryListener(), this.freeframe);
+        pluginManager.registerEvents(new FrameInventoryListener(this.freeframe), this.freeframe);
     }
 }

@@ -92,6 +92,10 @@ public final class FrameReference {
         return this.z;
     }
 
+    public String getAttachedFace() {
+        return this.attachedFace;
+    }
+
     @Override
     public boolean equals(Object object) {
         if (this == object) {
