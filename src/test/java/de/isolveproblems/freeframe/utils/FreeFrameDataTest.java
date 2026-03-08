@@ -41,6 +41,9 @@ class FreeFrameDataTest {
         assertEquals(19.99D, restored.getPrice());
         assertEquals("$", restored.getCurrency());
         assertEquals(true, restored.isActive());
+        assertEquals(64, restored.getStock());
+        assertEquals(64, restored.getMaxStock());
+        assertEquals(0.0D, restored.getRevenueTotal());
     }
 
     @Test

@@ -2,14 +2,22 @@ package de.isolveproblems.freeframe;
 
 import de.isolveproblems.freeframe.economy.VaultEconomyService;
 import de.isolveproblems.freeframe.utils.AmountValidator;
+import de.isolveproblems.freeframe.utils.AuditLogger;
 import de.isolveproblems.freeframe.utils.ConfigurationMessages;
+import de.isolveproblems.freeframe.utils.FrameDisplayService;
 import de.isolveproblems.freeframe.utils.FrameRegistry;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
 import de.isolveproblems.freeframe.utils.InteractionLimiter;
+import de.isolveproblems.freeframe.utils.ItemPolicy;
 import de.isolveproblems.freeframe.utils.MetricsTracker;
+import de.isolveproblems.freeframe.utils.PlaceholderSupport;
+import de.isolveproblems.freeframe.utils.PurchaseWindowLimiter;
+import de.isolveproblems.freeframe.utils.RegionRestrictionService;
 import de.isolveproblems.freeframe.utils.RegisterClasses;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -26,7 +34,13 @@ public class FreeFrame extends JavaPlugin {
     private FrameRegistry frameRegistry;
     private MetricsTracker metricsTracker;
     private InteractionLimiter interactionLimiter;
+    private PurchaseWindowLimiter purchaseWindowLimiter;
     private VaultEconomyService economyService;
+    private ItemPolicy itemPolicy;
+    private RegionRestrictionService regionRestrictionService;
+    private AuditLogger auditLogger;
+    private PlaceholderSupport placeholderSupport;
+    private FrameDisplayService displayService;
 
     @Override
     public void onEnable() {
@@ -42,16 +56,30 @@ public class FreeFrame extends JavaPlugin {
         if (this.frameRegistry != null) {
             this.frameRegistry.saveToConfig();
         }
+
+        if (this.displayService != null && this.getPluginConfig().getBoolean("freeframe.display.removeOnDisable", false) && this.frameRegistry != null) {
+            for (FreeFrameData frameData : this.frameRegistry.listFrames()) {
+                this.displayService.remove(frameData);
+            }
+        }
+
         this.logLifecycleState(false);
     }
 
     private void load() {
         this.configHandler.load();
 
+        this.placeholderSupport = new PlaceholderSupport(this);
         this.metricsTracker = new MetricsTracker();
         this.interactionLimiter = new InteractionLimiter();
+        this.purchaseWindowLimiter = new PurchaseWindowLimiter();
         this.economyService = new VaultEconomyService(this);
         this.economyService.initialize();
+
+        this.itemPolicy = new ItemPolicy();
+        this.regionRestrictionService = new RegionRestrictionService();
+        this.auditLogger = new AuditLogger(this);
+        this.displayService = new FrameDisplayService(this);
 
         this.frameRegistry = new FrameRegistry(this);
         this.frameRegistry.loadFromConfig();
@@ -66,6 +94,7 @@ public class FreeFrame extends JavaPlugin {
             this.getLogger().info("Removed " + removedEntries + " invalid free frame references during startup.");
         }
 
+        this.displayService.refreshAll(this.frameRegistry.listFrames());
         this.initializeOptionalBStats();
         this.registrar.registerCommands();
         this.registrar.registerListeners();
@@ -112,8 +141,32 @@ public class FreeFrame extends JavaPlugin {
         return this.interactionLimiter;
     }
 
+    public PurchaseWindowLimiter getPurchaseWindowLimiter() {
+        return this.purchaseWindowLimiter;
+    }
+
     public VaultEconomyService getEconomyService() {
         return this.economyService;
+    }
+
+    public ItemPolicy getItemPolicy() {
+        return this.itemPolicy;
+    }
+
+    public RegionRestrictionService getRegionRestrictionService() {
+        return this.regionRestrictionService;
+    }
+
+    public AuditLogger getAuditLogger() {
+        return this.auditLogger;
+    }
+
+    public PlaceholderSupport getPlaceholderSupport() {
+        return this.placeholderSupport;
+    }
+
+    public FrameDisplayService getDisplayService() {
+        return this.displayService;
     }
 
     public FileConfiguration getPluginConfig() {
@@ -140,6 +193,14 @@ public class FreeFrame extends JavaPlugin {
         return frameData.isOwnedBy(player.getUniqueId().toString());
     }
 
+    public boolean isItemAllowed(Material material) {
+        return this.itemPolicy.check(this.getPluginConfig(), material).isAllowed();
+    }
+
+    public boolean isLocationAllowed(Location location) {
+        return this.regionRestrictionService.isAllowed(this.getPluginConfig(), location);
+    }
+
     public String getPrefix() {
         String prefix = this.getPluginConfig().getString("freeframe.prefix", DEFAULT_PREFIX);
         return this.colorize(prefix);
@@ -151,14 +212,29 @@ public class FreeFrame extends JavaPlugin {
 
     public String getMessage(String path, String fallback) {
         String raw = this.getPluginConfig().getString(path, fallback);
-        return this.formatMessage(raw);
+        return this.formatMessage(raw, null);
+    }
+
+    public String getMessage(String path, String fallback, Player player) {
+        String raw = this.getPluginConfig().getString(path, fallback);
+        return this.formatMessage(raw, player);
     }
 
     public String formatMessage(String raw) {
+        return this.formatMessage(raw, null);
+    }
+
+    public String formatMessage(String raw, Player player) {
         if (raw == null) {
             return "";
         }
-        return this.colorize(raw.replace("%prefix%", this.getPrefix()));
+
+        String withPrefix = raw.replace("%prefix%", this.getPrefix());
+        String withPlaceholders = this.placeholderSupport == null
+            ? withPrefix
+            : this.placeholderSupport.apply(player, withPrefix);
+
+        return this.colorize(withPlaceholders);
     }
 
     public String colorize(String text) {

@@ -4,7 +4,6 @@ import de.isolveproblems.freeframe.FreeFrame;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
@@ -16,38 +15,47 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 public class FrameRegistry {
-    private static final String FRAMES_DATA_PATH = "freeframe.framesData";
     private static final String LEGACY_FRAMES_LIST_PATH = "freeframe.frames";
 
     private final FreeFrame freeframe;
+    private final FrameStorageService storageService;
     private final Map<String, FreeFrameData> framesById = new HashMap<String, FreeFrameData>();
     private final Map<FrameReference, String> frameIdByReference = new HashMap<FrameReference, String>();
 
     public FrameRegistry(FreeFrame freeframe) {
         this.freeframe = freeframe;
+        this.storageService = new FrameStorageService(freeframe);
     }
 
     public synchronized void loadFromConfig() {
         this.framesById.clear();
         this.frameIdByReference.clear();
 
-        ConfigurationSection section = this.freeframe.getPluginConfig().getConfigurationSection(FRAMES_DATA_PATH);
-        if (section == null) {
-            return;
-        }
-
-        for (String id : section.getKeys(false)) {
-            FreeFrameData data = FreeFrameData.fromSection(id, section.getConfigurationSection(id));
-            if (data == null) {
+        Map<String, FreeFrameData> loaded = this.storageService.loadFrames();
+        boolean normalized = false;
+        for (Map.Entry<String, FreeFrameData> entry : loaded.entrySet()) {
+            FreeFrameData data = entry.getValue();
+            if (data == null || data.getReference() == null) {
                 continue;
             }
+
+            if (this.normalize(data)) {
+                normalized = true;
+            }
+
+            String id = data.getId().toLowerCase(Locale.ENGLISH);
             this.framesById.put(id, data);
             this.frameIdByReference.put(data.getReference(), id);
+        }
+
+        if (normalized) {
+            this.saveToConfig();
         }
     }
 
@@ -65,20 +73,10 @@ public class FrameRegistry {
                 continue;
             }
 
-            String id = this.generateId();
-            FreeFrameData data = new FreeFrameData(
-                id,
-                reference,
-                "unknown",
-                "unknown",
-                System.currentTimeMillis(),
-                "UNKNOWN",
-                this.defaultPrice(),
-                this.defaultCurrency(),
-                true
-            );
-            this.framesById.put(id, data);
-            this.frameIdByReference.put(reference, id);
+            FreeFrameData data = this.createDefaultData(this.generateId(), reference, null, null);
+            this.framesById.put(data.getId(), data);
+            this.frameIdByReference.put(reference, data.getId());
+            this.freeframe.getDisplayService().refresh(data);
             migrated++;
         }
 
@@ -146,39 +144,51 @@ public class FrameRegistry {
         if (existingId != null) {
             FreeFrameData existing = this.framesById.get(existingId);
             if (existing != null) {
+                boolean changed = false;
+
                 if (itemStack != null && itemStack.getType() != null) {
-                    existing.setItemType(itemStack.getType().name());
+                    String itemType = itemStack.getType().name();
+                    if (!itemType.equalsIgnoreCase(existing.getItemType())) {
+                        existing.setItemType(itemType);
+                        changed = true;
+                    }
                 }
+
+                if (("unknown".equalsIgnoreCase(existing.getOwnerUuid()) || "unknown".equalsIgnoreCase(existing.getOwnerName())) && owner != null) {
+                    existing.setOwnerUuid(owner.getUniqueId().toString());
+                    existing.setOwnerName(owner.getName());
+                    changed = true;
+                }
+
                 if (existing.getReference() == null) {
                     existing.setReference(reference);
+                    changed = true;
                 }
-                this.framesById.put(existingId, existing);
-                this.frameIdByReference.put(reference, existingId);
-                this.saveToConfig();
+
+                if (existing.applyAutoRefillIfDue(System.currentTimeMillis())) {
+                    changed = true;
+                }
+
+                if (this.normalize(existing)) {
+                    changed = true;
+                }
+
+                if (changed) {
+                    this.framesById.put(existingId, existing);
+                    this.frameIdByReference.put(reference, existingId);
+                    this.saveToConfig();
+                }
+
+                this.freeframe.getDisplayService().refresh(existing);
                 return existing;
             }
         }
 
-        String ownerUuid = owner == null ? "unknown" : owner.getUniqueId().toString();
-        String ownerName = owner == null ? "unknown" : owner.getName();
-        String itemType = (itemStack == null || itemStack.getType() == null) ? "UNKNOWN" : itemStack.getType().name();
-
-        String id = this.generateId();
-        FreeFrameData created = new FreeFrameData(
-            id,
-            reference,
-            ownerUuid,
-            ownerName,
-            System.currentTimeMillis(),
-            itemType,
-            this.defaultPrice(),
-            this.defaultCurrency(),
-            true
-        );
-
-        this.framesById.put(id, created);
-        this.frameIdByReference.put(reference, id);
+        FreeFrameData created = this.createDefaultData(this.generateId(), reference, owner, itemStack);
+        this.framesById.put(created.getId(), created);
+        this.frameIdByReference.put(reference, created.getId());
         this.saveToConfig();
+        this.freeframe.getDisplayService().refresh(created);
         this.freeframe.getMetricsTracker().incrementFramesCreated();
         return created;
     }
@@ -204,7 +214,7 @@ public class FrameRegistry {
         if (id == null) {
             return null;
         }
-        return this.framesById.get(id.toLowerCase());
+        return this.framesById.get(id.toLowerCase(Locale.ENGLISH));
     }
 
     public synchronized List<FreeFrameData> listFrames() {
@@ -222,12 +232,32 @@ public class FrameRegistry {
         return this.framesById.size();
     }
 
+    public synchronized void replaceAll(List<FreeFrameData> frames) {
+        this.framesById.clear();
+        this.frameIdByReference.clear();
+
+        if (frames != null) {
+            for (FreeFrameData data : frames) {
+                if (data == null || data.getReference() == null) {
+                    continue;
+                }
+
+                this.normalize(data);
+                String id = data.getId().toLowerCase(Locale.ENGLISH);
+                this.framesById.put(id, data);
+                this.frameIdByReference.put(data.getReference(), id);
+            }
+        }
+
+        this.saveToConfig();
+    }
+
     public synchronized boolean removeById(String id) {
         if (id == null) {
             return false;
         }
 
-        String normalizedId = id.toLowerCase();
+        String normalizedId = id.toLowerCase(Locale.ENGLISH);
         boolean removed = this.removeInternal(normalizedId);
         if (removed) {
             this.saveToConfig();
@@ -245,6 +275,8 @@ public class FrameRegistry {
         if (currency != null && !currency.trim().isEmpty()) {
             data.setCurrency(currency.trim());
         }
+
+        this.freeframe.getDisplayService().refresh(data);
         this.saveToConfig();
         return true;
     }
@@ -257,16 +289,39 @@ public class FrameRegistry {
     }
 
     public synchronized void saveToConfig() {
-        this.freeframe.getPluginConfig().set(FRAMES_DATA_PATH, null);
-        ConfigurationSection root = this.freeframe.getPluginConfig().createSection(FRAMES_DATA_PATH);
+        this.storageService.saveFrames(this.listFrames());
+    }
 
-        List<FreeFrameData> ordered = this.listFrames();
-        for (FreeFrameData data : ordered) {
-            ConfigurationSection frameSection = root.createSection(data.getId());
-            data.writeToSection(frameSection);
-        }
+    public synchronized String getActiveStorageBackend() {
+        return this.storageService.resolveType().name().toLowerCase(Locale.ENGLISH);
+    }
 
-        this.freeframe.getConfigHandler().getConfigApi().saveConfig();
+    private FreeFrameData createDefaultData(String id, FrameReference reference, Player owner, ItemStack itemStack) {
+        String ownerUuid = owner == null ? "unknown" : owner.getUniqueId().toString();
+        String ownerName = owner == null ? "unknown" : owner.getName();
+        String itemType = (itemStack == null || itemStack.getType() == null) ? "UNKNOWN" : itemStack.getType().name();
+
+        int maxStock = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.stock.defaultMax", 64));
+        int stock = Math.max(0, Math.min(maxStock, this.freeframe.getPluginConfig().getInt("freeframe.stock.default", maxStock)));
+
+        return new FreeFrameData(
+            id,
+            reference,
+            ownerUuid,
+            ownerName,
+            System.currentTimeMillis(),
+            itemType,
+            this.defaultPrice(),
+            this.defaultCurrency(),
+            true,
+            stock,
+            maxStock,
+            this.freeframe.getPluginConfig().getBoolean("freeframe.stock.autoRefill.defaultEnabled", false),
+            Math.max(0L, this.freeframe.getPluginConfig().getLong("freeframe.stock.autoRefill.defaultIntervalMillis", 300_000L)),
+            System.currentTimeMillis(),
+            0.0D,
+            ""
+        );
     }
 
     private boolean normalize(FreeFrameData data) {
@@ -302,6 +357,31 @@ public class FrameRegistry {
             changed = true;
         }
 
+        if (data.getMaxStock() < 1) {
+            data.setMaxStock(Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.stock.defaultMax", 64)));
+            changed = true;
+        }
+
+        if (data.getStock() < 0 || data.getStock() > data.getMaxStock()) {
+            data.setStock(Math.min(data.getMaxStock(), Math.max(0, data.getStock())));
+            changed = true;
+        }
+
+        if (data.getRefillIntervalMillis() < 0L) {
+            data.setRefillIntervalMillis(0L);
+            changed = true;
+        }
+
+        if (data.getLastRefillAt() <= 0L) {
+            data.setLastRefillAt(System.currentTimeMillis());
+            changed = true;
+        }
+
+        if (data.getRevenueTotal() < 0.0D) {
+            data.setRevenueTotal(0.0D);
+            changed = true;
+        }
+
         return changed;
     }
 
@@ -312,6 +392,7 @@ public class FrameRegistry {
         }
 
         this.frameIdByReference.remove(removed.getReference());
+        this.freeframe.getDisplayService().remove(removed);
         return true;
     }
 
@@ -328,7 +409,7 @@ public class FrameRegistry {
     private String generateId() {
         String id;
         do {
-            id = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toLowerCase();
+            id = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toLowerCase(Locale.ENGLISH);
         } while (this.framesById.containsKey(id));
         return id;
     }

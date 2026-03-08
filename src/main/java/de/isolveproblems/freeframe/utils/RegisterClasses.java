@@ -6,6 +6,8 @@ import de.isolveproblems.freeframe.listener.CreateFrameListener;
 import de.isolveproblems.freeframe.listener.DestroyFrameListener;
 import de.isolveproblems.freeframe.listener.FrameBreakCleanupListener;
 import de.isolveproblems.freeframe.listener.FrameInventoryListener;
+import de.isolveproblems.freeframe.listener.SetupEditorListener;
+import de.isolveproblems.freeframe.listener.SetupWandListener;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.PluginManager;
 
@@ -34,5 +36,7 @@ public class RegisterClasses {
         pluginManager.registerEvents(new DestroyFrameListener(this.freeframe), this.freeframe);
         pluginManager.registerEvents(new FrameBreakCleanupListener(this.freeframe), this.freeframe);
         pluginManager.registerEvents(new FrameInventoryListener(this.freeframe), this.freeframe);
+        pluginManager.registerEvents(new SetupWandListener(this.freeframe), this.freeframe);
+        pluginManager.registerEvents(new SetupEditorListener(this.freeframe), this.freeframe);
     }
 }

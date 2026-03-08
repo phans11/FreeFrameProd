@@ -72,8 +72,10 @@ public class DestroyFrameListener implements Listener {
 
         player.sendMessage(this.freeframe.getMessage(
             "freeframe.destroy.message",
-            "%prefix% &eYou've destroyed the &6FreeFrame &esuccessfully."
+            "%prefix% &eYou've destroyed the &6FreeFrame &esuccessfully.",
+            player
         ));
+        this.freeframe.getAuditLogger().logAdminAction(player, "destroy", frameData.getId());
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

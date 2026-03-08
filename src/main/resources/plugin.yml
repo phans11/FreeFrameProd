@@ -3,12 +3,12 @@ version: ${project.version}
 main: de.isolveproblems.freeframe.FreeFrame
 description: Sell items for free in an ItemFrame
 authors: [isolveproblems]
-softdepend: [Vault]
+softdepend: [Vault, PlaceholderAPI]
 
 commands:
   freeframe:
     description: Main command for FreeFrame
-    usage: /freeframe <help|info|reload|list|inspect|remove|setprice|migrate|repair|debug>
+    usage: /freeframe <help|info|reload|list|inspect|remove|setprice|setstock|wand|storage|export|migrate|repair|debug>
     aliases: [ff]
 
 permissions:

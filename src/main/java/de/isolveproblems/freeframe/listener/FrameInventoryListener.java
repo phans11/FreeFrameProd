@@ -5,8 +5,12 @@ import de.isolveproblems.freeframe.economy.EconomyChargeResult;
 import de.isolveproblems.freeframe.inventory.FreeFrameInventoryHolder;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
 import de.isolveproblems.freeframe.utils.InteractionLimiter;
+import de.isolveproblems.freeframe.utils.ItemPolicy;
+import de.isolveproblems.freeframe.utils.PurchaseWindowLimiter;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -60,7 +64,18 @@ public class FrameInventoryListener implements Listener {
     }
 
     private void processPurchase(Player player, FreeFrameInventoryHolder holder) {
-        if (holder == null || holder.getSaleItem() == null || this.isAir(holder.getSaleItem().getType())) {
+        ItemStack saleItem = holder == null ? null : holder.getSaleItem();
+        if (holder == null || saleItem == null || this.isAir(saleItem.getType())) {
+            return;
+        }
+
+        ItemPolicy.Decision itemDecision = this.freeframe.getItemPolicy().check(this.freeframe.getPluginConfig(), saleItem.getType());
+        if (!itemDecision.isAllowed()) {
+            player.sendMessage(this.freeframe.getMessage(
+                "freeframe.items.blockedMessage",
+                "%prefix% &cThis item type is blocked by item policy.",
+                player
+            ));
             return;
         }
 
@@ -68,7 +83,18 @@ public class FrameInventoryListener implements Listener {
         if (frameData == null || !frameData.isActive()) {
             player.sendMessage(this.freeframe.getMessage(
                 "freeframe.frame.inactive",
-                "%prefix% &cThis FreeFrame is currently inactive."
+                "%prefix% &cThis FreeFrame is currently inactive.",
+                player
+            ));
+            return;
+        }
+
+        Location frameLocation = this.resolveLocation(frameData);
+        if (frameLocation != null && !this.freeframe.isLocationAllowed(frameLocation)) {
+            player.sendMessage(this.freeframe.getMessage(
+                "freeframe.restrictions.denied",
+                "%prefix% &cFreeFrame is disabled in this world/region.",
+                player
             ));
             return;
         }
@@ -77,7 +103,21 @@ public class FrameInventoryListener implements Listener {
             this.freeframe.getMetricsTracker().incrementDeniedAccess();
             player.sendMessage(this.freeframe.getMessage(
                 "freeframe.access.denied",
-                "%prefix% &cYou are not allowed to use this FreeFrame."
+                "%prefix% &cYou are not allowed to use this FreeFrame.",
+                player
+            ));
+            return;
+        }
+
+        boolean autoRefilled = frameData.applyAutoRefillIfDue(System.currentTimeMillis());
+
+        int amount = Math.max(1, saleItem.getAmount());
+        if (frameData.getStock() < amount) {
+            this.freeframe.getMetricsTracker().incrementStockOutHits();
+            player.sendMessage(this.freeframe.getMessage(
+                "freeframe.purchase.stockOut",
+                "%prefix% &cThis frame is out of stock.",
+                player
             ));
             return;
         }
@@ -93,7 +133,8 @@ public class FrameInventoryListener implements Listener {
             this.freeframe.getMetricsTracker().incrementCooldownHits();
             player.sendMessage(this.freeframe.getMessage(
                 "freeframe.cooldown.message",
-                "%prefix% &cPlease wait before using another FreeFrame."
+                "%prefix% &cPlease wait before using another FreeFrame.",
+                player
             ));
             return;
         }
@@ -102,9 +143,33 @@ public class FrameInventoryListener implements Listener {
             this.freeframe.getMetricsTracker().incrementFrameRateLimitHits();
             player.sendMessage(this.freeframe.getMessage(
                 "freeframe.rateLimit.message",
-                "%prefix% &cThis FreeFrame is currently rate-limited."
+                "%prefix% &cThis FreeFrame is currently rate-limited.",
+                player
             ));
             return;
+        }
+
+        if (this.freeframe.getPluginConfig().getBoolean("freeframe.limits.enabled", false)) {
+            PurchaseWindowLimiter.LimitState state = this.freeframe.getPurchaseWindowLimiter().checkAndConsume(
+                player.getUniqueId(),
+                amount,
+                this.freeframe.getPluginConfig().getInt("freeframe.limits.maxItemsPerWindow", 64),
+                this.freeframe.getPluginConfig().getLong("freeframe.limits.windowMillis", 600000L)
+            );
+
+            if (!state.isAllowed()) {
+                this.freeframe.getMetricsTracker().incrementPurchaseLimitHits();
+                Map<String, String> tokens = new HashMap<String, String>();
+                tokens.put("%remaining%", String.valueOf(state.getRemaining()));
+                tokens.put("%waitSeconds%", String.valueOf(Math.max(1L, state.getWaitMillis() / 1000L)));
+                this.sendTemplatedMessage(
+                    player,
+                    "freeframe.purchase.limited",
+                    "%prefix% &cPurchase limit reached. Try again later.",
+                    tokens
+                );
+                return;
+            }
         }
 
         double price = Math.max(0.0D, frameData.getPrice());
@@ -116,7 +181,8 @@ public class FrameInventoryListener implements Listener {
             if (!this.freeframe.getEconomyService().isAvailable() && !allowWithoutVault) {
                 player.sendMessage(this.freeframe.getMessage(
                     "freeframe.purchase.economyUnavailable",
-                    "%prefix% &cEconomy is not available right now."
+                    "%prefix% &cEconomy is not available right now.",
+                    player
                 ));
                 return;
             }
@@ -141,7 +207,8 @@ public class FrameInventoryListener implements Listener {
                     if (!allowWithoutVault) {
                         player.sendMessage(this.freeframe.getMessage(
                             "freeframe.purchase.economyUnavailable",
-                            "%prefix% &cEconomy is not available right now."
+                            "%prefix% &cEconomy is not available right now.",
+                            player
                         ));
                         return;
                     }
@@ -151,10 +218,34 @@ public class FrameInventoryListener implements Listener {
             }
         }
 
-        this.giveItem(player, holder.getSaleItem());
-        this.freeframe.getMetricsTracker().incrementPurchases();
+        if (!frameData.consumeStock(amount)) {
+            this.freeframe.getMetricsTracker().incrementStockOutHits();
+            player.sendMessage(this.freeframe.getMessage(
+                "freeframe.purchase.stockOut",
+                "%prefix% &cThis frame is out of stock.",
+                player
+            ));
+            return;
+        }
+
+        this.giveItem(player, saleItem);
+        frameData.setCurrency(currency);
 
         if (price > 0.0D && charged) {
+            frameData.addRevenue(price);
+
+            if (this.freeframe.getPluginConfig().getBoolean("freeframe.economy.payOwner", true)
+                && !frameData.isOwnedBy(player.getUniqueId().toString())) {
+                EconomyChargeResult payoutResult = this.freeframe.getEconomyService().depositToOwner(
+                    frameData.getOwnerUuid(),
+                    frameData.getOwnerName(),
+                    price
+                );
+                if (payoutResult.getStatus() == EconomyChargeResult.Status.SUCCESS) {
+                    this.freeframe.getMetricsTracker().incrementOwnerPayouts();
+                }
+            }
+
             Map<String, String> tokens = new HashMap<String, String>();
             tokens.put("%price%", this.formatPrice(price));
             tokens.put("%currency%", currency);
@@ -164,11 +255,22 @@ public class FrameInventoryListener implements Listener {
                 "%prefix% &aPurchased item for &e%currency%%price%&a.",
                 tokens
             );
+            this.freeframe.getAuditLogger().logPurchase(player, frameData, amount, price, "charged");
         } else {
             player.sendMessage(this.freeframe.getMessage(
                 "freeframe.purchase.free",
-                "%prefix% &aYou received this item for free."
+                "%prefix% &aYou received this item for free.",
+                player
             ));
+            this.freeframe.getAuditLogger().logPurchase(player, frameData, amount, 0.0D, "free");
+        }
+
+        this.freeframe.getMetricsTracker().incrementPurchases();
+        this.freeframe.getDisplayService().refresh(frameData);
+        this.freeframe.getFrameRegistry().saveToConfig();
+
+        if (autoRefilled) {
+            this.freeframe.getAuditLogger().logPurchase(player, frameData, 0, 0.0D, "auto-refill");
         }
     }
 
@@ -192,7 +294,8 @@ public class FrameInventoryListener implements Listener {
 
         player.sendMessage(this.freeframe.getMessage(
             "freeframe.purchase.inventoryDrop",
-            "%prefix% &eYour inventory was full. Remaining items were dropped."
+            "%prefix% &eYour inventory was full. Remaining items were dropped.",
+            player
         ));
     }
 
@@ -206,7 +309,7 @@ public class FrameInventoryListener implements Listener {
             template = template.replace(token.getKey(), token.getValue());
         }
 
-        player.sendMessage(this.freeframe.formatMessage(template));
+        player.sendMessage(this.freeframe.formatMessage(template, player));
     }
 
     private String resolveCurrency(String preferred, String fallback) {
@@ -218,8 +321,24 @@ public class FrameInventoryListener implements Listener {
             return fallback.trim();
         }
 
-        String configured = this.freeframe.getPluginConfig().getString("freeframe.default.currency", "$" );
+        String configured = this.freeframe.getPluginConfig().getString("freeframe.default.currency", "$");
         return configured == null || configured.trim().isEmpty() ? "$" : configured.trim();
+    }
+
+    private Location resolveLocation(FreeFrameData frameData) {
+        if (frameData == null || frameData.getReference() == null) {
+            return null;
+        }
+
+        World world = Bukkit.getWorld(frameData.getReference().getWorldName());
+        if (world == null) {
+            return null;
+        }
+
+        return new Location(world,
+            frameData.getReference().getX(),
+            frameData.getReference().getY(),
+            frameData.getReference().getZ());
     }
 
     private boolean isSaleSlot(int rawSlot) {

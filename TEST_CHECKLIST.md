@@ -6,76 +6,64 @@ Validierung des Plugins auf Spigot `1.8.8` und `1.21.11`.
 ## Voraussetzungen
 - Server A: Spigot `1.8.8`
 - Server B: Spigot `1.21.11`
-- Plugin-JAR: `target/FreeFrame-1.5.0.jar`
-- Testspieler:
-  - `Admin` (OP, alle Rechte)
-  - `User` (keine Rechte)
+- Plugin-JAR: `target/FreeFrame-1.6.0.jar`
+- Testspieler: `Admin` (OP), `User`
+- Optional: Vault + Economy Plugin, PlaceholderAPI
 
 ## Installation
 1. Server stoppen.
-2. `FreeFrame-1.5.0.jar` nach `plugins/` kopieren.
+2. `FreeFrame-1.6.0.jar` nach `plugins/` kopieren.
 3. Server starten.
 4. Im Log `Status: Enabled` pruefen.
 5. `plugins/FreeFrame/config.yml` pruefen.
 
-## Funktionstests (beide Versionen)
-1. Basisbefehle
-- `/freeframe help` zeigt Subcommands.
-- `/freeframe info` zeigt Version `1.5.0`.
+## Funktionstests
+1. Basis
+- `/freeframe help` zeigt alle Subcommands.
+- `/freeframe info` zeigt Version `1.6.0`.
 
-2. Reload
-- `User`: `/freeframe reload` -> Permission-Fehler.
-- `Admin`: `/freeframe reload` -> Reload + Migrations-/Repair-Statistik.
+2. Buy-Limits
+- `freeframe.limits.enabled: true`
+- Mehrfachkauf -> Limit-Meldung erscheint.
 
-3. Frame-Erstellung und GUI
-- ItemFrame + stackbares Item (z. B. Stone) platzieren.
-- Rechtsklick auf Frame -> GUI oeffnet, Slots `2/4/6` belegt.
-- Item-Anzahl entspricht `freeframe.item.amount`.
-- GUI blockiert Verschieben/Drag/Shift-Klick.
+3. Stock + Auto-Refill
+- `inspect` zeigt `stock/maxStock`.
+- Bei `stock=0` kein Kauf moeglich.
+- Auto-Refill fuellt nach Intervall auf.
 
-4. Kauf-Flow
-- Preis auf `0`: Klick auf Slot `2/4/6` gibt Item + Free-Message.
-- Preis > `0` + Vault aktiv: Klick zieht Geld ab + Success-Message.
-- Preis > `0` + zu wenig Geld: kein Item + NotEnoughMoney-Message.
-- Volles Inventar: Restitems werden gedroppt + InventoryDrop-Message.
+4. Owner-Revenue
+- Preis > `0`, Kauf durch fremden Spieler.
+- Money wird dem Frame-Owner gutgeschrieben.
 
-5. Access-Policy
-- `freeframe.access.requireOwner: true` setzen.
-- Nicht-Eigentuemer: Zugriff blockiert + Denied-Message.
-- Mit `freeframe.access.bypass`: Zugriff erlaubt.
+5. Display/Hologramm
+- Ueber aktivem Frame wird ArmorStand-Name angezeigt.
+- Preis/Stock-Aenderung aktualisiert Anzeige.
 
-6. Cooldown und Rate-Limit
-- Schnelle Mehrfachklicks -> Cooldown- oder RateLimit-Message.
-- Nach kurzer Wartezeit funktioniert Kauf wieder.
+6. Item-Policy
+- Blacklist oder Whitelist setzen.
+- Geblockte Items koennen nicht als FreeFrame genutzt werden.
 
-7. Destroy-Schutz
-- Nicht berechtigt: Zerstoren blockiert.
-- Berechtigt aber nicht Creative: blockiert.
-- Creative ohne Sneak: blockiert.
-- Creative + Sneak + Berechtigung: erlaubt.
+7. Restriktionen
+- World-/Region-Restriktion aktivieren.
+- Interaktion in gesperrten Bereichen wird blockiert.
 
-8. Admin-Befehle
-- `/freeframe list` zeigt Eintraege mit IDs.
-- `/freeframe inspect <id>` zeigt Metadaten.
-- `/freeframe setprice <id> 12.5 $` aktualisiert Preis.
-- `/freeframe remove <id>` entfernt Eintrag.
-- `/freeframe repair` bereinigt inkonsistente Eintraege.
-- `/freeframe debug` zeigt Runtime-Metriken.
+8. Setup-Wand
+- `/freeframe wand` gibt Wand.
+- Rechtsklick auf Frame mit Wand -> Editor-GUI.
+- Active/Stock/Preis/Auto-Refill dort aenderbar.
 
-9. Migration
-- Legacy-`freeframe.frames` Eintrag manuell setzen.
-- `/freeframe migrate` -> Eintrag in `freeframe.framesData` uebernommen.
+9. Logging + Export
+- Kaeufe/Adminaktionen erzeugen Audit-Logs.
+- `/freeframe export` erzeugt Exportdatei in `plugins/FreeFrame/exports`.
 
-## Versionsspezifisch
-1. Spigot 1.8.8
-- Keine Startup-Exceptions.
-- Alle Tests erfolgreich.
+10. Storage Backends
+- `/freeframe storage sqlite` und `/freeframe storage mysql` testen.
+- Daten bleiben nach Neustart erhalten.
 
-2. Spigot 1.21.11
-- Keine Startup-Exceptions.
-- Kein Offhand-Doppeltrigger bei Rechtsklick.
-- Alle Tests erfolgreich.
+11. PlaceholderAPI
+- Bei installiertem PlaceholderAPI: Placeholder in Messages/Display werden ersetzt.
 
 ## Regression
-- Server-Stopp zeigt `Status: Disabled`.
-- Nach Restart bleiben Frames in `freeframe.framesData` erhalten.
+- Destroy-Schutz bleibt aktiv (Permission/Creative/Sneak).
+- GUI blockiert Verschieben/Drag.
+- Startup/Shutdown ohne Exceptions.

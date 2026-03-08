@@ -10,6 +10,9 @@ public class MetricsTracker {
     private final AtomicLong deniedAccess = new AtomicLong();
     private final AtomicLong cooldownHits = new AtomicLong();
     private final AtomicLong frameRateLimitHits = new AtomicLong();
+    private final AtomicLong purchaseLimitHits = new AtomicLong();
+    private final AtomicLong stockOutHits = new AtomicLong();
+    private final AtomicLong ownerPayouts = new AtomicLong();
     private final AtomicLong migrations = new AtomicLong();
     private final AtomicLong repairs = new AtomicLong();
     private final AtomicLong adminRemovals = new AtomicLong();
@@ -34,6 +37,18 @@ public class MetricsTracker {
         this.frameRateLimitHits.incrementAndGet();
     }
 
+    public void incrementPurchaseLimitHits() {
+        this.purchaseLimitHits.incrementAndGet();
+    }
+
+    public void incrementStockOutHits() {
+        this.stockOutHits.incrementAndGet();
+    }
+
+    public void incrementOwnerPayouts() {
+        this.ownerPayouts.incrementAndGet();
+    }
+
     public void incrementMigrations() {
         this.migrations.incrementAndGet();
     }
@@ -53,6 +68,9 @@ public class MetricsTracker {
         values.put("deniedAccess", this.deniedAccess.get());
         values.put("cooldownHits", this.cooldownHits.get());
         values.put("frameRateLimitHits", this.frameRateLimitHits.get());
+        values.put("purchaseLimitHits", this.purchaseLimitHits.get());
+        values.put("stockOutHits", this.stockOutHits.get());
+        values.put("ownerPayouts", this.ownerPayouts.get());
         values.put("migrations", this.migrations.get());
         values.put("repairs", this.repairs.get());
         values.put("adminRemovals", this.adminRemovals.get());

@@ -57,12 +57,55 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.purchase.notEnoughMoney", "%prefix% &cNot enough money. Required: &e%currency%%price%&c.");
         config.addDefault("freeframe.purchase.economyUnavailable", "%prefix% &cEconomy is not available right now.");
         config.addDefault("freeframe.purchase.inventoryDrop", "%prefix% &eYour inventory was full. Remaining items were dropped.");
+        config.addDefault("freeframe.purchase.stockOut", "%prefix% &cThis frame is out of stock.");
+        config.addDefault("freeframe.purchase.limited", "%prefix% &cPurchase limit reached. Try again later.");
 
         config.addDefault("freeframe.frame.inactive", "%prefix% &cThis FreeFrame is currently inactive.");
 
         config.addDefault("freeframe.metrics.bstatsPluginId", 0);
+        config.addDefault("freeframe.placeholderapi.enabled", true);
 
         config.addDefault("freeframe.economy.allowWithoutVault", false);
+        config.addDefault("freeframe.economy.payOwner", true);
+
+        config.addDefault("freeframe.stock.default", 64);
+        config.addDefault("freeframe.stock.defaultMax", 64);
+        config.addDefault("freeframe.stock.autoRefill.defaultEnabled", false);
+        config.addDefault("freeframe.stock.autoRefill.defaultIntervalMillis", 300000L);
+
+        config.addDefault("freeframe.limits.enabled", false);
+        config.addDefault("freeframe.limits.maxItemsPerWindow", 64);
+        config.addDefault("freeframe.limits.windowMillis", 600000L);
+
+        config.addDefault("freeframe.items.mode", "off");
+        config.addDefault("freeframe.items.blacklist", Collections.emptyList());
+        config.addDefault("freeframe.items.whitelist", Collections.emptyList());
+        config.addDefault("freeframe.items.blockedMessage", "%prefix% &cThis item type is blocked by item policy.");
+
+        config.addDefault("freeframe.logging.enabled", true);
+
+        config.addDefault("freeframe.display.enabled", true);
+        config.addDefault("freeframe.display.removeOnDisable", false);
+        config.addDefault("freeframe.display.template", "&e%item% &7| &6%currency%%price% &7| &bStock: %stock%");
+
+        config.addDefault("freeframe.restrictions.denied", "%prefix% &cFreeFrame is disabled in this world/region.");
+        config.addDefault("freeframe.restrictions.worlds.enabled", false);
+        config.addDefault("freeframe.restrictions.worlds.mode", "whitelist");
+        config.addDefault("freeframe.restrictions.worlds.list", Collections.emptyList());
+        config.addDefault("freeframe.restrictions.regions.enabled", false);
+        config.addDefault("freeframe.restrictions.regions.list", Collections.emptyList());
+
+        config.addDefault("freeframe.setup.wandName", "&6FreeFrame Setup Wand");
+        config.addDefault("freeframe.setup.wandReceived", "%prefix% &aSetup wand received.");
+
+        config.addDefault("freeframe.storage.type", "yaml");
+        config.addDefault("freeframe.storage.sqlite.file", "freeframe.db");
+        config.addDefault("freeframe.storage.mysql.host", "127.0.0.1");
+        config.addDefault("freeframe.storage.mysql.port", 3306);
+        config.addDefault("freeframe.storage.mysql.database", "freeframe");
+        config.addDefault("freeframe.storage.mysql.username", "root");
+        config.addDefault("freeframe.storage.mysql.password", "");
+        config.addDefault("freeframe.storage.mysql.ssl", false);
 
         config.addDefault("freeframe.frames", Collections.emptyList());
         config.addDefault("freeframe.framesData", Collections.emptyMap());
@@ -97,6 +140,32 @@ public class ConfigurationMessages {
 
         if (config.getDouble("freeframe.default.price", 0.0D) < 0.0D) {
             config.set("freeframe.default.price", 0.0D);
+        }
+
+        if (config.getInt("freeframe.stock.defaultMax", 64) < 1) {
+            config.set("freeframe.stock.defaultMax", 64);
+        }
+
+        int defaultMax = config.getInt("freeframe.stock.defaultMax", 64);
+        int defaultStock = config.getInt("freeframe.stock.default", defaultMax);
+        if (defaultStock < 0) {
+            defaultStock = 0;
+        }
+        if (defaultStock > defaultMax) {
+            defaultStock = defaultMax;
+        }
+        config.set("freeframe.stock.default", defaultStock);
+
+        if (config.getLong("freeframe.stock.autoRefill.defaultIntervalMillis", 300000L) < 0L) {
+            config.set("freeframe.stock.autoRefill.defaultIntervalMillis", 300000L);
+        }
+
+        if (config.getInt("freeframe.limits.maxItemsPerWindow", 64) < 1) {
+            config.set("freeframe.limits.maxItemsPerWindow", 64);
+        }
+
+        if (config.getLong("freeframe.limits.windowMillis", 600000L) < 1000L) {
+            config.set("freeframe.limits.windowMillis", 600000L);
         }
 
         this.ensurePermissionNode("freeframe.reload.permission", "freeframe.reload");

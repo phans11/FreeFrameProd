@@ -3,7 +3,9 @@ package de.isolveproblems.freeframe.listener;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.inventory.FreeFrameInventoryHolder;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
+import de.isolveproblems.freeframe.utils.ItemPolicy;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Rotation;
 import org.bukkit.entity.Entity;
@@ -40,6 +42,28 @@ public class CreateFrameListener implements Listener {
             return;
         }
 
+        Location frameLocation = itemFrame.getLocation();
+        if (!this.freeframe.isLocationAllowed(frameLocation)) {
+            event.getPlayer().sendMessage(this.freeframe.getMessage(
+                "freeframe.restrictions.denied",
+                "%prefix% &cFreeFrame is disabled in this world/region.",
+                event.getPlayer()
+            ));
+            event.setCancelled(true);
+            return;
+        }
+
+        ItemPolicy.Decision decision = this.freeframe.getItemPolicy().check(this.freeframe.getPluginConfig(), itemStack.getType());
+        if (!decision.isAllowed()) {
+            event.getPlayer().sendMessage(this.freeframe.getMessage(
+                "freeframe.items.blockedMessage",
+                "%prefix% &cThis item type is blocked by item policy.",
+                event.getPlayer()
+            ));
+            event.setCancelled(true);
+            return;
+        }
+
         Player player = event.getPlayer();
         FreeFrameData frameData = this.freeframe.getFrameRegistry().getOrCreate(itemFrame, player, itemStack);
         if (frameData == null) {
@@ -49,7 +73,8 @@ public class CreateFrameListener implements Listener {
         if (!frameData.isActive()) {
             player.sendMessage(this.freeframe.getMessage(
                 "freeframe.frame.inactive",
-                "%prefix% &cThis FreeFrame is currently inactive."
+                "%prefix% &cThis FreeFrame is currently inactive.",
+                player
             ));
             event.setCancelled(true);
             return;
@@ -59,21 +84,39 @@ public class CreateFrameListener implements Listener {
             this.freeframe.getMetricsTracker().incrementDeniedAccess();
             player.sendMessage(this.freeframe.getMessage(
                 "freeframe.access.denied",
-                "%prefix% &cYou are not allowed to use this FreeFrame."
+                "%prefix% &cYou are not allowed to use this FreeFrame.",
+                player
             ));
             event.setCancelled(true);
             return;
         }
 
+        if (frameData.applyAutoRefillIfDue(System.currentTimeMillis())) {
+            this.freeframe.getFrameRegistry().saveToConfig();
+            this.freeframe.getDisplayService().refresh(frameData);
+        }
+
         int configuredAmount = this.freeframe.getConfiguredItemAmount();
+        int availableAmount = Math.max(0, frameData.getStock());
+        if (availableAmount <= 0) {
+            player.sendMessage(this.freeframe.getMessage(
+                "freeframe.purchase.stockOut",
+                "%prefix% &cThis frame is out of stock.",
+                player
+            ));
+            event.setCancelled(true);
+            return;
+        }
+
+        int displayAmount = Math.max(1, Math.min(configuredAmount, availableAmount));
         if (itemStack.getType() == Material.ARMOR_STAND) {
-            this.updateFrameItemAmount(itemFrame, itemStack, configuredAmount);
+            this.updateFrameItemAmount(itemFrame, itemStack, displayAmount);
             itemFrame.setRotation(Rotation.NONE);
             event.setCancelled(true);
             return;
         }
 
-        this.openItemFrame(player, frameData, itemStack, configuredAmount);
+        this.openItemFrame(player, frameData, itemStack, displayAmount);
         itemFrame.setRotation(Rotation.NONE);
         event.setCancelled(true);
     }

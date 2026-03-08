@@ -1,21 +1,24 @@
 # FreeFrameProd
 
-Spigot-Plugin fuer ItemFrame-Shops mit Free- und Price-Modus.
+Spigot-Plugin fuer ItemFrame-Shops mit Free- und Preis-Mode.
 
 ## Kompatibilitaet
 - Minecraft/Spigot `1.8.8` bis `1.21.11`
 - Java 8 Build-Target
 
-## Features
-- FreeFrame-GUI mit festen Verkaufsslots (`2/4/6`)
-- Optionales Pricing pro Frame (Vault-Economy, konfigurierbar)
-- Ownership-/Access-Policy (`requireOwner` + Bypass-Permission)
-- Player-Cooldown + Frame-Rate-Limit
-- Persistente Frame-Metadaten (`freeframe.framesData`)
-- Admin-Tools: `list`, `inspect`, `remove`, `setprice`, `migrate`, `repair`, `debug`
-- Migration alter `freeframe.frames` Eintraege
+## Umgesetzte Features
+1. Buy-Limits pro Spieler/Zeitfenster
+2. Frame-Stock inkl. Auto-Refill
+3. Owner-Revenue (Vault Payout)
+4. Display/Hologramm via ArmorStand ueber Frame
+5. Global Blacklist/Whitelist fuer Items
+6. Audit-Logging + CSV-Export
+7. World-/Region-Restriktionen
+8. In-Game Setup-Wand + Editor-GUI
+9. PlaceholderAPI-Unterstuetzung (optional)
+10. Storage-Backends: YAML, SQLite, MySQL
 
-## Befehle
+## Commands
 - `/freeframe help`
 - `/freeframe info`
 - `/freeframe reload`
@@ -23,6 +26,10 @@ Spigot-Plugin fuer ItemFrame-Shops mit Free- und Price-Modus.
 - `/freeframe inspect <id>`
 - `/freeframe remove <id>`
 - `/freeframe setprice <id> <price> [currency]`
+- `/freeframe setstock <id> <stock> [max]`
+- `/freeframe wand`
+- `/freeframe storage <yaml|sqlite|mysql>`
+- `/freeframe export`
 - `/freeframe migrate`
 - `/freeframe repair`
 - `/freeframe debug`
@@ -43,6 +50,10 @@ mvn clean package
 mvn clean verify -P release
 ```
 
+## Hinweise zu Storage
+- `freeframe.storage.type: yaml|sqlite|mysql`
+- SQLite-Datei: `freeframe.storage.sqlite.file`
+- MySQL-Zugang: `freeframe.storage.mysql.*`
+
 ## CI
 - Workflow: `.github/workflows/ci.yml`
-- Build + Tests via Maven Release-Profil
