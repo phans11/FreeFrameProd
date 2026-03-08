@@ -24,6 +24,9 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class FreeFrame extends JavaPlugin {
     private static final String DEFAULT_PREFIX = "&eFreeFrame &8>>";
@@ -175,6 +178,55 @@ public class FreeFrame extends JavaPlugin {
 
     public int getConfiguredItemAmount() {
         return AmountValidator.sanitize(this.getPluginConfig().getInt("freeframe.item.amount", 1));
+    }
+
+    public int getGuiInventorySize() {
+        int size = this.getPluginConfig().getInt("freeframe.gui.inventory.size", 9);
+        if (size < 9) {
+            return 9;
+        }
+        if (size > 54) {
+            return 54;
+        }
+        if (size % 9 != 0) {
+            size = (size / 9) * 9;
+        }
+        return Math.max(9, size);
+    }
+
+    public List<Integer> getSaleSlots() {
+        List<Integer> configured = this.getPluginConfig().getIntegerList("freeframe.gui.saleSlots");
+        if (configured == null || configured.isEmpty()) {
+            List<Integer> defaults = new ArrayList<Integer>();
+            defaults.add(2);
+            defaults.add(4);
+            defaults.add(6);
+            return Collections.unmodifiableList(defaults);
+        }
+
+        int size = this.getGuiInventorySize();
+        List<Integer> slots = new ArrayList<Integer>();
+        for (Integer slot : configured) {
+            if (slot != null && slot >= 0 && slot < size && !slots.contains(slot)) {
+                slots.add(slot);
+            }
+        }
+
+        if (slots.isEmpty()) {
+            slots.add(2);
+            slots.add(4);
+            slots.add(6);
+        }
+        return Collections.unmodifiableList(slots);
+    }
+
+    public boolean isSaleSlot(int rawSlot) {
+        return this.getSaleSlots().contains(rawSlot);
+    }
+
+    public String getGuiTitle(Player player) {
+        String template = this.getPluginConfig().getString("freeframe.gui.title", "%prefix%");
+        return this.formatMessage(template, player);
     }
 
     public boolean canPlayerUseFrame(Player player, FreeFrameData frameData) {

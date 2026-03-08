@@ -104,13 +104,14 @@ public class FrameStorageService {
 
     private Map<String, FreeFrameData> loadFromDatabase(StorageType type) {
         Map<String, FreeFrameData> loaded = new LinkedHashMap<String, FreeFrameData>();
+        String table = this.resolveTableName();
 
         try (Connection connection = this.openConnection(type)) {
             this.ensureTable(connection, type);
 
             String query = "SELECT id,reference,owner_uuid,owner_name,created_at,item_type,price,currency,active,"
                 + "stock,max_stock,auto_refill,refill_interval,last_refill,revenue_total,display_entity_uuid "
-                + "FROM freeframe_frames";
+                + "FROM " + table;
 
             try (PreparedStatement statement = connection.prepareStatement(query);
                  ResultSet resultSet = statement.executeQuery()) {
@@ -151,15 +152,16 @@ public class FrameStorageService {
     }
 
     private boolean saveToDatabase(StorageType type, List<FreeFrameData> frames) {
+        String table = this.resolveTableName();
         try (Connection connection = this.openConnection(type)) {
             this.ensureTable(connection, type);
             connection.setAutoCommit(false);
 
             try (Statement wipe = connection.createStatement()) {
-                wipe.executeUpdate("DELETE FROM freeframe_frames");
+                wipe.executeUpdate("DELETE FROM " + table);
             }
 
-            String insert = "INSERT INTO freeframe_frames ("
+            String insert = "INSERT INTO " + table + " ("
                 + "id,reference,owner_uuid,owner_name,created_at,item_type,price,currency,active,"
                 + "stock,max_stock,auto_refill,refill_interval,last_refill,revenue_total,display_entity_uuid"
                 + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -196,9 +198,10 @@ public class FrameStorageService {
     }
 
     private void ensureTable(Connection connection, StorageType type) throws Exception {
+        String table = this.resolveTableName();
         String create;
         if (type == StorageType.MYSQL) {
-            create = "CREATE TABLE IF NOT EXISTS freeframe_frames ("
+            create = "CREATE TABLE IF NOT EXISTS " + table + " ("
                 + "id VARCHAR(32) PRIMARY KEY,"
                 + "reference VARCHAR(255) NOT NULL,"
                 + "owner_uuid VARCHAR(64) NOT NULL,"
@@ -217,7 +220,7 @@ public class FrameStorageService {
                 + "display_entity_uuid VARCHAR(64) NOT NULL"
                 + ")";
         } else {
-            create = "CREATE TABLE IF NOT EXISTS freeframe_frames ("
+            create = "CREATE TABLE IF NOT EXISTS " + table + " ("
                 + "id TEXT PRIMARY KEY,"
                 + "reference TEXT NOT NULL,"
                 + "owner_uuid TEXT NOT NULL,"
@@ -278,5 +281,18 @@ public class FrameStorageService {
         backends.add("sqlite");
         backends.add("mysql");
         return backends;
+    }
+
+    private String resolveTableName() {
+        String configured = this.freeframe.getPluginConfig().getString("freeframe.storage.mysql.table", "freeframe_frames");
+        if (configured == null || configured.trim().isEmpty()) {
+            return "freeframe_frames";
+        }
+
+        String sanitized = configured.trim().replaceAll("[^A-Za-z0-9_]", "_");
+        if (sanitized.isEmpty()) {
+            return "freeframe_frames";
+        }
+        return sanitized;
     }
 }

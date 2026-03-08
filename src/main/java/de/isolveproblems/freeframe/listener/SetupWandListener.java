@@ -44,7 +44,11 @@ public class SetupWandListener implements Listener {
         ItemFrame itemFrame = (ItemFrame) clicked;
         ItemStack itemStack = itemFrame.getItem();
         if (itemStack == null || itemStack.getType() == null || "AIR".equals(itemStack.getType().name())) {
-            player.sendMessage(this.freeframe.formatMessage("%prefix% &cThe selected ItemFrame is empty."));
+            player.sendMessage(this.freeframe.getMessage(
+                "freeframe.setup.messages.emptyFrame",
+                "%prefix% &cThe selected ItemFrame is empty.",
+                player
+            ));
             event.setCancelled(true);
             return;
         }

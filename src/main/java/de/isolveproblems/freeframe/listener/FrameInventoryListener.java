@@ -48,7 +48,7 @@ public class FrameInventoryListener implements Listener {
             return;
         }
 
-        if (!this.isSaleSlot(event.getRawSlot())) {
+        if (!this.freeframe.isSaleSlot(event.getRawSlot())) {
             return;
         }
 
@@ -234,8 +234,9 @@ public class FrameInventoryListener implements Listener {
         if (price > 0.0D && charged) {
             frameData.addRevenue(price);
 
+            boolean payOwnerOnSelf = this.freeframe.getPluginConfig().getBoolean("freeframe.economy.payOwnerOnSelfPurchase", false);
             if (this.freeframe.getPluginConfig().getBoolean("freeframe.economy.payOwner", true)
-                && !frameData.isOwnedBy(player.getUniqueId().toString())) {
+                && (payOwnerOnSelf || !frameData.isOwnedBy(player.getUniqueId().toString()))) {
                 EconomyChargeResult payoutResult = this.freeframe.getEconomyService().depositToOwner(
                     frameData.getOwnerUuid(),
                     frameData.getOwnerName(),
@@ -268,6 +269,9 @@ public class FrameInventoryListener implements Listener {
         this.freeframe.getMetricsTracker().incrementPurchases();
         this.freeframe.getDisplayService().refresh(frameData);
         this.freeframe.getFrameRegistry().saveToConfig();
+        if (this.freeframe.getPluginConfig().getBoolean("freeframe.gui.closeAfterPurchase", false)) {
+            player.closeInventory();
+        }
 
         if (autoRefilled) {
             this.freeframe.getAuditLogger().logPurchase(player, frameData, 0, 0.0D, "auto-refill");
@@ -282,6 +286,15 @@ public class FrameInventoryListener implements Listener {
 
         Map<Integer, ItemStack> remaining = player.getInventory().addItem(reward);
         if (remaining.isEmpty()) {
+            return;
+        }
+
+        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.gui.dropOnFullInventory", true)) {
+            player.sendMessage(this.freeframe.getMessage(
+                "freeframe.purchase.inventoryFull",
+                "%prefix% &cYour inventory is full.",
+                player
+            ));
             return;
         }
 
@@ -339,10 +352,6 @@ public class FrameInventoryListener implements Listener {
             frameData.getReference().getX(),
             frameData.getReference().getY(),
             frameData.getReference().getZ());
-    }
-
-    private boolean isSaleSlot(int rawSlot) {
-        return rawSlot == 2 || rawSlot == 4 || rawSlot == 6;
     }
 
     private boolean isFreeFrameInventory(Inventory inventory) {

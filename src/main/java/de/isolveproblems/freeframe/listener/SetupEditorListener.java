@@ -31,29 +31,99 @@ public class SetupEditorListener implements Listener {
             return;
         }
 
-        Inventory inventory = Bukkit.createInventory(new SetupEditorInventoryHolder(frameData.getId()), 27,
-            freeframe.colorize("&8FreeFrame Setup: &e" + frameData.getId()));
+        int size = sanitizeInventorySize(freeframe.getPluginConfig().getInt("freeframe.setup.editor.inventorySize", 27));
+        String titleTemplate = freeframe.getPluginConfig().getString("freeframe.setup.editor.title", "&8FreeFrame Setup: &e%id%");
+        if (titleTemplate == null || titleTemplate.trim().isEmpty()) {
+            titleTemplate = "&8FreeFrame Setup: &e%id%";
+        }
 
-        inventory.setItem(4, createButton(Material.PAPER, "&6Frame Info",
+        Inventory inventory = Bukkit.createInventory(
+            new SetupEditorInventoryHolder(frameData.getId()),
+            size,
+            freeframe.colorize(titleTemplate.replace("%id%", frameData.getId()))
+        );
+
+        int infoSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.info", 4, size);
+        int toggleActiveSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.toggleActive", 10, size);
+        int stockDownSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.stockDown", 11, size);
+        int stockUpSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.stockUp", 12, size);
+        int refillSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.refill", 13, size);
+        int priceDownSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.priceDown", 14, size);
+        int priceUpSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.priceUp", 15, size);
+        int autoRefillSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.toggleAutoRefill", 16, size);
+        int maxStockDownSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.maxStockDown", 19, size);
+        int maxStockUpSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.maxStockUp", 20, size);
+        int closeSlot = resolveSlot(freeframe, "freeframe.setup.editor.slots.close", 22, size);
+
+        placeButton(inventory, infoSlot, createButton(
+            resolveMaterial(freeframe, "freeframe.setup.editor.materials.info", Material.PAPER),
+            "&6Frame Info",
             "&7Item: &f" + frameData.getItemType(),
             "&7Owner: &f" + frameData.getOwnerName(),
             "&7Price: &f" + frameData.getCurrency() + String.format(Locale.ENGLISH, "%.2f", frameData.getPrice()),
-            "&7Stock: &f" + frameData.getStock() + "/" + frameData.getMaxStock()
+            "&7Stock: &f" + frameData.getStock() + "/" + frameData.getMaxStock(),
+            "&7Revenue: &f" + frameData.getCurrency() + String.format(Locale.ENGLISH, "%.2f", frameData.getRevenueTotal())
         ));
 
-        inventory.setItem(10, createButton(frameData.isActive() ? Material.EMERALD_BLOCK : Material.REDSTONE_BLOCK,
-            "&6Toggle Active", "&7Current: &f" + frameData.isActive()));
-        inventory.setItem(11, createButton(Material.REDSTONE, "&cStock -1", "&7Current: &f" + frameData.getStock()));
-        inventory.setItem(12, createButton(Material.EMERALD, "&aStock +1", "&7Current: &f" + frameData.getStock()));
-        inventory.setItem(13, createButton(Material.CHEST, "&eRefill Stock", "&7Set stock to max stock"));
-        inventory.setItem(14, createButton(Material.GOLD_NUGGET, "&cPrice -1", "&7Current: &f" + frameData.getCurrency() + String.format(Locale.ENGLISH, "%.2f", frameData.getPrice())));
-        inventory.setItem(15, createButton(Material.GOLD_INGOT, "&aPrice +1", "&7Current: &f" + frameData.getCurrency() + String.format(Locale.ENGLISH, "%.2f", frameData.getPrice())));
-        inventory.setItem(16, createButton(Material.LEVER, "&6Toggle Auto Refill", "&7Current: &f" + frameData.isAutoRefill()));
+        placeButton(inventory, toggleActiveSlot, createButton(
+            frameData.isActive()
+                ? resolveMaterial(freeframe, "freeframe.setup.editor.materials.toggleActiveOn", Material.EMERALD_BLOCK)
+                : resolveMaterial(freeframe, "freeframe.setup.editor.materials.toggleActiveOff", Material.REDSTONE_BLOCK),
+            "&6Toggle Active",
+            "&7Current: &f" + frameData.isActive()
+        ));
 
-        inventory.setItem(19, createButton(Material.COAL, "&cMaxStock -8", "&7Current: &f" + frameData.getMaxStock()));
-        inventory.setItem(20, createButton(Material.DIAMOND, "&aMaxStock +8", "&7Current: &f" + frameData.getMaxStock()));
+        int stockStep = Math.max(1, freeframe.getPluginConfig().getInt("freeframe.setup.editor.stockStep", 1));
+        int maxStockStep = Math.max(1, freeframe.getPluginConfig().getInt("freeframe.setup.editor.maxStockStep", 8));
+        double priceStep = Math.max(0.01D, freeframe.getPluginConfig().getDouble("freeframe.setup.editor.priceStep", 1.0D));
 
-        inventory.setItem(22, createButton(Material.BARRIER, "&cClose Editor", "&7Close setup GUI"));
+        placeButton(inventory, stockDownSlot, createButton(
+            resolveMaterial(freeframe, "freeframe.setup.editor.materials.stockDown", Material.REDSTONE),
+            "&cStock -" + stockStep,
+            "&7Current: &f" + frameData.getStock()
+        ));
+        placeButton(inventory, stockUpSlot, createButton(
+            resolveMaterial(freeframe, "freeframe.setup.editor.materials.stockUp", Material.EMERALD),
+            "&aStock +" + stockStep,
+            "&7Current: &f" + frameData.getStock()
+        ));
+        placeButton(inventory, refillSlot, createButton(
+            resolveMaterial(freeframe, "freeframe.setup.editor.materials.refill", Material.CHEST),
+            "&eRefill Stock",
+            "&7Set stock to max stock"
+        ));
+        placeButton(inventory, priceDownSlot, createButton(
+            resolveMaterial(freeframe, "freeframe.setup.editor.materials.priceDown", Material.GOLD_NUGGET),
+            "&cPrice -" + String.format(Locale.ENGLISH, "%.2f", priceStep),
+            "&7Current: &f" + frameData.getCurrency() + String.format(Locale.ENGLISH, "%.2f", frameData.getPrice())
+        ));
+        placeButton(inventory, priceUpSlot, createButton(
+            resolveMaterial(freeframe, "freeframe.setup.editor.materials.priceUp", Material.GOLD_INGOT),
+            "&aPrice +" + String.format(Locale.ENGLISH, "%.2f", priceStep),
+            "&7Current: &f" + frameData.getCurrency() + String.format(Locale.ENGLISH, "%.2f", frameData.getPrice())
+        ));
+        placeButton(inventory, autoRefillSlot, createButton(
+            resolveMaterial(freeframe, "freeframe.setup.editor.materials.toggleAutoRefill", Material.LEVER),
+            "&6Toggle Auto Refill",
+            "&7Current: &f" + frameData.isAutoRefill()
+        ));
+
+        placeButton(inventory, maxStockDownSlot, createButton(
+            resolveMaterial(freeframe, "freeframe.setup.editor.materials.maxStockDown", Material.COAL),
+            "&cMaxStock -" + maxStockStep,
+            "&7Current: &f" + frameData.getMaxStock()
+        ));
+        placeButton(inventory, maxStockUpSlot, createButton(
+            resolveMaterial(freeframe, "freeframe.setup.editor.materials.maxStockUp", Material.DIAMOND),
+            "&aMaxStock +" + maxStockStep,
+            "&7Current: &f" + frameData.getMaxStock()
+        ));
+
+        placeButton(inventory, closeSlot, createButton(
+            resolveMaterial(freeframe, "freeframe.setup.editor.materials.close", Material.BARRIER),
+            "&cClose Editor",
+            "&7Close setup GUI"
+        ));
 
         player.openInventory(inventory);
     }
@@ -89,52 +159,59 @@ public class SetupEditorListener implements Listener {
             return;
         }
 
+        int size = top.getSize();
         int slot = event.getRawSlot();
+        int toggleActiveSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.toggleActive", 10, size);
+        int stockDownSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.stockDown", 11, size);
+        int stockUpSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.stockUp", 12, size);
+        int refillSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.refill", 13, size);
+        int priceDownSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.priceDown", 14, size);
+        int priceUpSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.priceUp", 15, size);
+        int autoRefillSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.toggleAutoRefill", 16, size);
+        int maxStockDownSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.maxStockDown", 19, size);
+        int maxStockUpSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.maxStockUp", 20, size);
+        int closeSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.close", 22, size);
+
+        int stockStep = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.setup.editor.stockStep", 1));
+        int maxStockStep = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.setup.editor.maxStockStep", 8));
+        int maxStockCap = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.setup.editor.maxStockCap", 4096));
+        double priceStep = Math.max(0.01D, this.freeframe.getPluginConfig().getDouble("freeframe.setup.editor.priceStep", 1.0D));
+
         boolean changed = false;
-        switch (slot) {
-            case 10:
-                frameData.setActive(!frameData.isActive());
-                changed = true;
-                break;
-            case 11:
-                frameData.setStock(Math.max(0, frameData.getStock() - 1));
-                changed = true;
-                break;
-            case 12:
-                frameData.setStock(Math.min(frameData.getMaxStock(), frameData.getStock() + 1));
-                changed = true;
-                break;
-            case 13:
-                frameData.setStock(frameData.getMaxStock());
-                frameData.setLastRefillAt(System.currentTimeMillis());
-                changed = true;
-                break;
-            case 14:
-                frameData.setPrice(Math.max(0.0D, frameData.getPrice() - 1.0D));
-                changed = true;
-                break;
-            case 15:
-                frameData.setPrice(frameData.getPrice() + 1.0D);
-                changed = true;
-                break;
-            case 16:
-                frameData.setAutoRefill(!frameData.isAutoRefill());
-                changed = true;
-                break;
-            case 19:
-                frameData.setMaxStock(Math.max(1, frameData.getMaxStock() - 8));
-                frameData.setStock(Math.min(frameData.getStock(), frameData.getMaxStock()));
-                changed = true;
-                break;
-            case 20:
-                frameData.setMaxStock(Math.min(4096, frameData.getMaxStock() + 8));
-                changed = true;
-                break;
-            case 22:
-                player.closeInventory();
-                return;
-            default:
-                return;
+        if (slot == closeSlot) {
+            player.closeInventory();
+            return;
+        } else if (slot == toggleActiveSlot) {
+            frameData.setActive(!frameData.isActive());
+            changed = true;
+        } else if (slot == stockDownSlot) {
+            frameData.setStock(Math.max(0, frameData.getStock() - stockStep));
+            changed = true;
+        } else if (slot == stockUpSlot) {
+            frameData.setStock(Math.min(frameData.getMaxStock(), frameData.getStock() + stockStep));
+            changed = true;
+        } else if (slot == refillSlot) {
+            frameData.setStock(frameData.getMaxStock());
+            frameData.setLastRefillAt(System.currentTimeMillis());
+            changed = true;
+        } else if (slot == priceDownSlot) {
+            frameData.setPrice(Math.max(0.0D, frameData.getPrice() - priceStep));
+            changed = true;
+        } else if (slot == priceUpSlot) {
+            frameData.setPrice(frameData.getPrice() + priceStep);
+            changed = true;
+        } else if (slot == autoRefillSlot) {
+            frameData.setAutoRefill(!frameData.isAutoRefill());
+            changed = true;
+        } else if (slot == maxStockDownSlot) {
+            frameData.setMaxStock(Math.max(1, frameData.getMaxStock() - maxStockStep));
+            frameData.setStock(Math.min(frameData.getStock(), frameData.getMaxStock()));
+            changed = true;
+        } else if (slot == maxStockUpSlot) {
+            frameData.setMaxStock(Math.min(maxStockCap, frameData.getMaxStock() + maxStockStep));
+            changed = true;
+        } else {
+            return;
         }
 
         if (!changed) {
@@ -142,8 +219,16 @@ public class SetupEditorListener implements Listener {
         }
 
         this.freeframe.getFrameRegistry().saveToConfig();
-        this.freeframe.getDisplayService().refresh(frameData);
+        if (this.freeframe.getPluginConfig().getBoolean("freeframe.setup.editor.refreshDisplay", true)) {
+            this.freeframe.getDisplayService().refresh(frameData);
+        }
         this.freeframe.getAuditLogger().logAdminAction(player, "setup-update", frameData.getId() + " slot=" + slot);
+
+        if (this.freeframe.getPluginConfig().getBoolean("freeframe.setup.editor.closeAfterChange", false)) {
+            player.closeInventory();
+            return;
+        }
+
         openEditor(this.freeframe, player, frameData);
     }
 
@@ -152,6 +237,54 @@ public class SetupEditorListener implements Listener {
         if (event.getView().getTopInventory().getHolder() instanceof SetupEditorInventoryHolder) {
             event.setCancelled(true);
         }
+    }
+
+    private static void placeButton(Inventory inventory, int slot, ItemStack button) {
+        if (inventory == null || button == null) {
+            return;
+        }
+
+        if (slot < 0 || slot >= inventory.getSize()) {
+            return;
+        }
+
+        inventory.setItem(slot, button);
+    }
+
+    private static int resolveSlot(FreeFrame freeframe, String path, int fallback, int inventorySize) {
+        int slot = freeframe.getPluginConfig().getInt(path, fallback);
+        if (slot < 0 || slot >= inventorySize) {
+            return fallback >= 0 && fallback < inventorySize ? fallback : 0;
+        }
+        return slot;
+    }
+
+    private static Material resolveMaterial(FreeFrame freeframe, String path, Material fallback) {
+        String configured = freeframe.getPluginConfig().getString(path, fallback.name());
+        if (configured == null || configured.trim().isEmpty()) {
+            return fallback;
+        }
+
+        try {
+            Material material = Material.valueOf(configured.trim().toUpperCase(Locale.ENGLISH));
+            return material == null ? fallback : material;
+        } catch (IllegalArgumentException ignored) {
+            return fallback;
+        }
+    }
+
+    private static int sanitizeInventorySize(int configuredSize) {
+        int size = configuredSize;
+        if (size < 9) {
+            size = 9;
+        }
+        if (size > 54) {
+            size = 54;
+        }
+        if (size % 9 != 0) {
+            size = (size / 9) * 9;
+        }
+        return Math.max(9, size);
     }
 
     private static ItemStack createButton(Material material, String name, String... loreLines) {

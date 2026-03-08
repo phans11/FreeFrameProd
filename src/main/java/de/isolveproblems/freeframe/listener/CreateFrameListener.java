@@ -109,15 +109,20 @@ public class CreateFrameListener implements Listener {
         }
 
         int displayAmount = Math.max(1, Math.min(configuredAmount, availableAmount));
-        if (itemStack.getType() == Material.ARMOR_STAND) {
+        if (this.freeframe.getPluginConfig().getBoolean("freeframe.compat.armorStandAmountFix", true)
+            && itemStack.getType() == Material.ARMOR_STAND) {
             this.updateFrameItemAmount(itemFrame, itemStack, displayAmount);
-            itemFrame.setRotation(Rotation.NONE);
+            if (this.freeframe.getPluginConfig().getBoolean("freeframe.compat.cancelRotation", true)) {
+                itemFrame.setRotation(Rotation.NONE);
+            }
             event.setCancelled(true);
             return;
         }
 
         this.openItemFrame(player, frameData, itemStack, displayAmount);
-        itemFrame.setRotation(Rotation.NONE);
+        if (this.freeframe.getPluginConfig().getBoolean("freeframe.compat.cancelRotation", true)) {
+            itemFrame.setRotation(Rotation.NONE);
+        }
         event.setCancelled(true);
     }
 
@@ -137,13 +142,13 @@ public class CreateFrameListener implements Listener {
         String currency = frameData.getCurrency() == null ? "$" : frameData.getCurrency();
         Inventory inventory = Bukkit.createInventory(
             new FreeFrameInventoryHolder(frameData.getId(), displayItem, frameData.getPrice(), currency),
-            9,
-            this.freeframe.getPrefix()
+            this.freeframe.getGuiInventorySize(),
+            this.freeframe.getGuiTitle(player)
         );
 
-        inventory.setItem(2, displayItem.clone());
-        inventory.setItem(4, displayItem.clone());
-        inventory.setItem(6, displayItem.clone());
+        for (Integer slot : this.freeframe.getSaleSlots()) {
+            inventory.setItem(slot, displayItem.clone());
+        }
         player.openInventory(inventory);
     }
 

@@ -22,7 +22,8 @@ public class AuditLogger {
     }
 
     public void logPurchase(Player player, FreeFrameData frameData, int amount, double price, String result) {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.logging.enabled", true)) {
+        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.logging.enabled", true)
+            || !this.freeframe.getPluginConfig().getBoolean("freeframe.logging.purchaseEnabled", true)) {
             return;
         }
 
@@ -43,7 +44,8 @@ public class AuditLogger {
     }
 
     public void logAdminAction(CommandSender sender, String action, String details) {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.logging.enabled", true)) {
+        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.logging.enabled", true)
+            || !this.freeframe.getPluginConfig().getBoolean("freeframe.logging.adminEnabled", true)) {
             return;
         }
 
@@ -56,7 +58,11 @@ public class AuditLogger {
     }
 
     public File exportSnapshot(List<FreeFrameData> frames, Map<String, Long> metrics) {
-        File exportFolder = new File(this.freeframe.getDataFolder(), "exports");
+        String exportDirectory = this.freeframe.getPluginConfig().getString("freeframe.logging.exportDirectory", "exports");
+        if (exportDirectory == null || exportDirectory.trim().isEmpty()) {
+            exportDirectory = "exports";
+        }
+        File exportFolder = new File(this.freeframe.getDataFolder(), exportDirectory);
         if (!exportFolder.exists() && !exportFolder.mkdirs()) {
             return null;
         }
@@ -98,13 +104,30 @@ public class AuditLogger {
     }
 
     private File resolveLogFile() {
-        File logsFolder = new File(this.freeframe.getDataFolder(), "logs");
+        String loggingDirectory = this.freeframe.getPluginConfig().getString("freeframe.logging.directory", "logs");
+        if (loggingDirectory == null || loggingDirectory.trim().isEmpty()) {
+            loggingDirectory = "logs";
+        }
+
+        File logsFolder = new File(this.freeframe.getDataFolder(), loggingDirectory);
         if (!logsFolder.exists() && !logsFolder.mkdirs()) {
             return new File(this.freeframe.getDataFolder(), "freeframe.log");
         }
 
+        String filePrefix = this.freeframe.getPluginConfig().getString("freeframe.logging.filePrefix", "audit");
+        if (filePrefix == null || filePrefix.trim().isEmpty()) {
+            filePrefix = "audit";
+        }
+        String extension = this.freeframe.getPluginConfig().getString("freeframe.logging.extension", ".csv");
+        if (extension == null || extension.trim().isEmpty()) {
+            extension = ".csv";
+        }
+        if (!extension.startsWith(".")) {
+            extension = "." + extension;
+        }
+
         String date = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH).format(new Date());
-        return new File(logsFolder, "audit-" + date + ".csv");
+        return new File(logsFolder, filePrefix + "-" + date + extension);
     }
 
     private void appendLine(File file, String line) {

@@ -430,7 +430,8 @@ public class FreeFrameCommand implements TabExecutor {
         this.freeframe.getPluginConfig().set("freeframe.storage.type", requested);
         this.freeframe.getConfigHandler().getConfigApi().saveConfig();
         this.freeframe.getFrameRegistry().loadFromConfig();
-        if (this.freeframe.getFrameRegistry().size() == 0 && !backup.isEmpty()) {
+        boolean migrateOnSwitch = this.freeframe.getPluginConfig().getBoolean("freeframe.storage.migrateOnSwitch", true);
+        if (migrateOnSwitch && this.freeframe.getFrameRegistry().size() == 0 && !backup.isEmpty()) {
             this.freeframe.getFrameRegistry().replaceAll(backup);
         }
         this.freeframe.getDisplayService().refreshAll(this.freeframe.getFrameRegistry().listFrames());

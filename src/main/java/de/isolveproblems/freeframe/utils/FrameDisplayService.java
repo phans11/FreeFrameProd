@@ -41,28 +41,33 @@ public class FrameDisplayService {
             return;
         }
 
+        if (this.freeframe.getPluginConfig().getBoolean("freeframe.display.onlyWhenInStock", false) && frameData.getStock() <= 0) {
+            this.remove(frameData);
+            return;
+        }
+
         ItemFrame frame = this.findItemFrame(frameData.getReference());
         if (frame == null) {
             this.remove(frameData);
             return;
         }
 
+        Location displayLocation = this.resolveDisplayLocation(frame.getLocation());
         ArmorStand stand = this.resolveDisplay(frameData, frame.getWorld());
         if (stand == null) {
-            Location spawnLocation = frame.getLocation().clone().add(0.5D, 0.45D, 0.5D);
-            Entity created = frame.getWorld().spawnEntity(spawnLocation, EntityType.ARMOR_STAND);
+            Entity created = frame.getWorld().spawnEntity(displayLocation, EntityType.ARMOR_STAND);
             if (!(created instanceof ArmorStand)) {
                 return;
             }
             stand = (ArmorStand) created;
         }
 
-        stand.teleport(frame.getLocation().clone().add(0.5D, 0.45D, 0.5D));
-        stand.setVisible(false);
-        stand.setGravity(false);
-        stand.setCustomNameVisible(true);
+        stand.teleport(displayLocation);
+        stand.setVisible(this.freeframe.getPluginConfig().getBoolean("freeframe.display.armorStand.visible", false));
+        stand.setGravity(this.freeframe.getPluginConfig().getBoolean("freeframe.display.armorStand.gravity", false));
+        stand.setCustomNameVisible(this.freeframe.getPluginConfig().getBoolean("freeframe.display.armorStand.customNameVisible", true));
         stand.setCustomName(this.buildDisplayName(frameData));
-        stand.setSmall(true);
+        stand.setSmall(this.freeframe.getPluginConfig().getBoolean("freeframe.display.armorStand.small", true));
         this.trySetMarker(stand);
 
         frameData.setDisplayEntityUuid(stand.getUniqueId().toString());
@@ -122,7 +127,8 @@ public class FrameDisplayService {
 
         int chunkX = reference.getX() >> 4;
         int chunkZ = reference.getZ() >> 4;
-        if (!world.isChunkLoaded(chunkX, chunkZ) && !world.loadChunk(chunkX, chunkZ, false)) {
+        boolean loadChunk = this.freeframe.getPluginConfig().getBoolean("freeframe.display.loadChunk", false);
+        if (!world.isChunkLoaded(chunkX, chunkZ) && (!loadChunk || !world.loadChunk(chunkX, chunkZ, false))) {
             return null;
         }
 
@@ -156,10 +162,21 @@ public class FrameDisplayService {
     }
 
     private void trySetMarker(ArmorStand stand) {
+        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.display.armorStand.marker", true)) {
+            return;
+        }
+
         try {
             stand.getClass().getMethod("setMarker", boolean.class).invoke(stand, true);
         } catch (Throwable ignored) {
             // not available on some old API variants
         }
+    }
+
+    private Location resolveDisplayLocation(Location frameLocation) {
+        double offsetX = this.freeframe.getPluginConfig().getDouble("freeframe.display.offset.x", 0.5D);
+        double offsetY = this.freeframe.getPluginConfig().getDouble("freeframe.display.offset.y", 0.45D);
+        double offsetZ = this.freeframe.getPluginConfig().getDouble("freeframe.display.offset.z", 0.5D);
+        return frameLocation.clone().add(offsetX, offsetY, offsetZ);
     }
 }

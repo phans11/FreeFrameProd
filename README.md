@@ -54,6 +54,19 @@ mvn clean verify -P release
 - `freeframe.storage.type: yaml|sqlite|mysql`
 - SQLite-Datei: `freeframe.storage.sqlite.file`
 - MySQL-Zugang: `freeframe.storage.mysql.*`
+- Tabellenname: `freeframe.storage.mysql.table`
+- Auto-Migration bei Backend-Switch: `freeframe.storage.migrateOnSwitch`
+
+## Admin-Konfiguration (wichtigste Gruppen)
+- GUI: `freeframe.gui.*` (Titel, Groesse, Verkaufsslots, Verhalten bei Kauf)
+- Setup-Editor: `freeframe.setup.editor.*` (Schritte, Slots, Materialien, Auto-Close)
+- Setup-Wand: `freeframe.setup.wand*` (Material, Name, Lore, Menge)
+- Display/Hologramm: `freeframe.display.*` (Offset, ArmorStand-Eigenschaften, Sichtbarkeit)
+- Economy: `freeframe.economy.*` (Owner-Payout, Verhalten ohne Vault)
+- Logging/Export: `freeframe.logging.*` (Aktivierung, Unterordner, Dateiname)
+- Limits/Stock: `freeframe.limits.*`, `freeframe.stock.*`
+- Restriktionen: `freeframe.restrictions.*` (Welten und Cuboid-Regionen)
+- Item-Policy: `freeframe.items.*` (Blacklist/Whitelist)
 
 ## CI
 - Workflow: `.github/workflows/ci.yml`
