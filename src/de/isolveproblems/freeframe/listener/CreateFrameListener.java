@@ -20,36 +20,57 @@ implements Listener {
 
     @EventHandler
     public void onFrameCreation(PlayerInteractEntityEvent event) {
+        if (this.isOffHandInteraction(event)) {
+            return;
+        }
         Player player = event.getPlayer();
         Entity entity = event.getRightClicked();
-        if (entity instanceof ItemFrame) {
-            ItemFrame itemFrame = (ItemFrame)event.getRightClicked();
-            if (event.getRightClicked() instanceof ItemFrame && !((ItemFrame)event.getRightClicked()).getItem().getType().equals((Object)Material.AIR)) {
-                ItemStack itemstack = itemFrame.getItem();
-                if (itemFrame.getItem().equals((Object)Material.ARMOR_STAND)) {
-                    itemstack.setAmount(this.freeframe.getConfigHandler().config.getConfig().getInt("freeframe.item.amount"));
-                    itemFrame.setRotation(itemFrame.getRotation());
-                    itemFrame.setRotation(Rotation.NONE);
-                    event.setCancelled(true);
-                } else {
-                    this.openItemFrame(player, itemstack, this.freeframe.getConfigHandler().config.getConfig().getInt("freeframe.item.amount"));
-                    itemFrame.setRotation(itemFrame.getRotation());
-                    itemFrame.setRotation(Rotation.NONE);
-                    event.setCancelled(true);
-                }
-            }
+        if (!(entity instanceof ItemFrame)) {
+            return;
         }
+
+        ItemFrame itemFrame = (ItemFrame)entity;
+        ItemStack itemStack = itemFrame.getItem();
+        if (itemStack == null || this.isAir(itemStack.getType())) {
+            return;
+        }
+
+        int amount = this.freeframe.getConfigHandler().config.getConfig().getInt("freeframe.item.amount");
+        if (itemStack.getType() == Material.ARMOR_STAND) {
+            itemStack.setAmount(amount);
+            itemFrame.setRotation(Rotation.NONE);
+            event.setCancelled(true);
+            return;
+        }
+
+        this.openItemFrame(player, itemStack, amount);
+        itemFrame.setRotation(Rotation.NONE);
+        event.setCancelled(true);
     }
 
     public void openItemFrame(Player player, ItemStack itemstack, int amount) {
-        if (itemstack.getMaxStackSize() > 1) {
-            itemstack.setAmount(amount);
+        ItemStack displayItem = itemstack.clone();
+        if (displayItem.getMaxStackSize() > 1) {
+            displayItem.setAmount(Math.max(1, Math.min(amount, displayItem.getMaxStackSize())));
         }
         Inventory itemframe = Bukkit.createInventory(null, (int)9, (String)this.freeframe.getPrefix());
-        itemframe.setItem(2, itemstack);
-        itemframe.setItem(4, itemstack);
-        itemframe.setItem(6, itemstack);
+        itemframe.setItem(2, displayItem);
+        itemframe.setItem(4, displayItem);
+        itemframe.setItem(6, displayItem);
         player.openInventory(itemframe);
     }
-}
 
+    private boolean isAir(Material material) {
+        return material == null || material.name().equals("AIR");
+    }
+
+    private boolean isOffHandInteraction(PlayerInteractEntityEvent event) {
+        try {
+            Object hand = event.getClass().getMethod("getHand").invoke(event);
+            return hand != null && "OFF_HAND".equals(String.valueOf(hand));
+        }
+        catch (ReflectiveOperationException ignored) {
+            return false;
+        }
+    }
+}

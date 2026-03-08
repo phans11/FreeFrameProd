@@ -17,7 +17,11 @@ public class ConfigAPI {
         if (!fileName.contains(".yml")) {
             fileName = fileName + ".yml";
         }
-        this.file = new File(path, fileName);
+        File directory = new File(path);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+        this.file = new File(directory, fileName);
         this.fileConfig = YamlConfiguration.loadConfiguration((File)this.file);
         if (!this.file.exists()) {
             this.fileConfig.options().copyDefaults(true);
@@ -35,7 +39,11 @@ public class ConfigAPI {
         if (!fileName.contains(".yml")) {
             fileName = fileName + ".yml";
         }
-        this.file = new File(path, fileName);
+        File directory = new File(path);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+        this.file = new File(directory, fileName);
         this.fileConfig = YamlConfiguration.loadConfiguration((File)this.file);
         if (!this.file.exists()) {
             this.fileConfig.options().copyDefaults(true);
@@ -83,4 +91,3 @@ public class ConfigAPI {
         this.fileConfig = YamlConfiguration.loadConfiguration((File)this.file);
     }
 }
-

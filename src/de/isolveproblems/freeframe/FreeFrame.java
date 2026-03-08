@@ -13,22 +13,24 @@ extends JavaPlugin {
     private RegisterClasses register;
     private ConfigurationMessages messagesHandler;
 
+    @Override
     public void onEnable() {
         this.freeframe = this;
         this.register = new RegisterClasses();
         this.messagesHandler = new ConfigurationMessages();
         this.load();
         PluginDescriptionFile pdf = this.getDescription();
-        Bukkit.getConsoleSender().sendMessage((Object)ChatColor.GOLD + "Name: " + (Object)ChatColor.YELLOW + "FreeFrame");
-        Bukkit.getConsoleSender().sendMessage((Object)ChatColor.GOLD + "Version: " + (Object)ChatColor.YELLOW + pdf.getVersion());
-        Bukkit.getConsoleSender().sendMessage((Object)ChatColor.GOLD + "Status: " + (Object)ChatColor.GREEN + "Enabled");
+        Bukkit.getConsoleSender().sendMessage(ChatColor.GOLD + "Name: " + ChatColor.YELLOW + "FreeFrame");
+        Bukkit.getConsoleSender().sendMessage(ChatColor.GOLD + "Version: " + ChatColor.YELLOW + pdf.getVersion());
+        Bukkit.getConsoleSender().sendMessage(ChatColor.GOLD + "Status: " + ChatColor.GREEN + "Enabled");
     }
 
+    @Override
     public void onDisable() {
         PluginDescriptionFile pdf = this.getDescription();
-        Bukkit.getConsoleSender().sendMessage((Object)ChatColor.GOLD + "Name: " + (Object)ChatColor.YELLOW + "FreeFrame");
-        Bukkit.getConsoleSender().sendMessage((Object)ChatColor.GOLD + "Version: " + (Object)ChatColor.YELLOW + pdf.getVersion());
-        Bukkit.getConsoleSender().sendMessage((Object)ChatColor.GOLD + "Status: " + (Object)ChatColor.GREEN + "Enabled");
+        Bukkit.getConsoleSender().sendMessage(ChatColor.GOLD + "Name: " + ChatColor.YELLOW + "FreeFrame");
+        Bukkit.getConsoleSender().sendMessage(ChatColor.GOLD + "Version: " + ChatColor.YELLOW + pdf.getVersion());
+        Bukkit.getConsoleSender().sendMessage(ChatColor.GOLD + "Status: " + ChatColor.RED + "Disabled");
     }
 
     public void load() {
@@ -62,4 +64,3 @@ extends JavaPlugin {
         return error;
     }
 }
-

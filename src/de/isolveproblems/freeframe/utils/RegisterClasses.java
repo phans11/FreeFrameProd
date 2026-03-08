@@ -15,7 +15,11 @@ public class RegisterClasses {
     private final FreeFrame freeframe = (FreeFrame)FreeFrame.getPlugin(FreeFrame.class);
 
     public void commands() {
-        this.freeframe.getCommand("freeframe").setExecutor((CommandExecutor)new CMDFreeFrame());
+        if (this.freeframe.getCommand("freeframe") != null) {
+            this.freeframe.getCommand("freeframe").setExecutor((CommandExecutor)new CMDFreeFrame());
+        } else {
+            this.freeframe.getLogger().warning("Command 'freeframe' is not defined in plugin.yml");
+        }
     }
 
     public void listener() {
@@ -28,4 +32,3 @@ public class RegisterClasses {
         this.freeframe.getConfigHandler().getConfig();
     }
 }
-

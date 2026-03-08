@@ -1,0 +1,18 @@
+name: FreeFrame
+version: ${project.version}
+main: de.isolveproblems.freeframe.FreeFrame
+description: Sell items for free in an ItemFrame
+authors: [isolveproblems]
+
+commands:
+  freeframe:
+    description: Main command for FreeFrame
+    usage: /freeframe [info|reload]
+
+permissions:
+  freeframe.reload:
+    description: Allows reloading the plugin config
+    default: op
+  freeframe.destroy:
+    description: Allows destroying protected free frames
+    default: op
