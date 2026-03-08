@@ -1,7 +1,7 @@
-
 package de.isolveproblems.freeframe.listener;
 
 import de.isolveproblems.freeframe.FreeFrame;
+import de.isolveproblems.freeframe.inventory.FreeFrameInventoryHolder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Rotation;
@@ -9,55 +9,68 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-public class CreateFrameListener
-implements Listener {
-    private final FreeFrame freeframe = (FreeFrame)FreeFrame.getPlugin(FreeFrame.class);
+public class CreateFrameListener implements Listener {
+    private final FreeFrame freeframe;
 
-    @EventHandler
+    public CreateFrameListener(FreeFrame freeframe) {
+        this.freeframe = freeframe;
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onFrameCreation(PlayerInteractEntityEvent event) {
         if (this.isOffHandInteraction(event)) {
             return;
         }
-        Player player = event.getPlayer();
-        Entity entity = event.getRightClicked();
-        if (!(entity instanceof ItemFrame)) {
+
+        Entity clickedEntity = event.getRightClicked();
+        if (!(clickedEntity instanceof ItemFrame)) {
             return;
         }
 
-        ItemFrame itemFrame = (ItemFrame)entity;
+        ItemFrame itemFrame = (ItemFrame) clickedEntity;
         ItemStack itemStack = itemFrame.getItem();
         if (itemStack == null || this.isAir(itemStack.getType())) {
             return;
         }
 
-        int amount = this.freeframe.getConfigHandler().config.getConfig().getInt("freeframe.item.amount");
+        this.freeframe.getFrameRegistry().track(itemFrame);
+        int configuredAmount = this.freeframe.getConfiguredItemAmount();
         if (itemStack.getType() == Material.ARMOR_STAND) {
-            itemStack.setAmount(amount);
+            this.updateFrameItemAmount(itemFrame, itemStack, configuredAmount);
             itemFrame.setRotation(Rotation.NONE);
             event.setCancelled(true);
             return;
         }
 
-        this.openItemFrame(player, itemStack, amount);
+        this.openItemFrame(event.getPlayer(), itemStack, configuredAmount);
         itemFrame.setRotation(Rotation.NONE);
         event.setCancelled(true);
     }
 
-    public void openItemFrame(Player player, ItemStack itemstack, int amount) {
-        ItemStack displayItem = itemstack.clone();
+    private void updateFrameItemAmount(ItemFrame itemFrame, ItemStack sourceItem, int amount) {
+        ItemStack updatedItem = sourceItem.clone();
+        int stackSize = Math.max(1, updatedItem.getMaxStackSize());
+        updatedItem.setAmount(Math.max(1, Math.min(amount, stackSize)));
+        itemFrame.setItem(updatedItem);
+    }
+
+    private void openItemFrame(Player player, ItemStack sourceItem, int amount) {
+        ItemStack displayItem = sourceItem.clone();
         if (displayItem.getMaxStackSize() > 1) {
             displayItem.setAmount(Math.max(1, Math.min(amount, displayItem.getMaxStackSize())));
         }
-        Inventory itemframe = Bukkit.createInventory(null, (int)9, (String)this.freeframe.getPrefix());
-        itemframe.setItem(2, displayItem);
-        itemframe.setItem(4, displayItem);
-        itemframe.setItem(6, displayItem);
-        player.openInventory(itemframe);
+
+        Inventory inventory = Bukkit.createInventory(new FreeFrameInventoryHolder(), 9, this.freeframe.getPrefix());
+        inventory.setItem(2, displayItem);
+        inventory.setItem(4, displayItem);
+        inventory.setItem(6, displayItem);
+        player.openInventory(inventory);
     }
 
     private boolean isAir(Material material) {
@@ -68,8 +81,7 @@ implements Listener {
         try {
             Object hand = event.getClass().getMethod("getHand").invoke(event);
             return hand != null && "OFF_HAND".equals(String.valueOf(hand));
-        }
-        catch (ReflectiveOperationException ignored) {
+        } catch (ReflectiveOperationException ignored) {
             return false;
         }
     }

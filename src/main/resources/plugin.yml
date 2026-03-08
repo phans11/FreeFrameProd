@@ -7,7 +7,7 @@ authors: [isolveproblems]
 commands:
   freeframe:
     description: Main command for FreeFrame
-    usage: /freeframe [info|reload]
+    usage: /freeframe [help|info|reload]
 
 permissions:
   freeframe.reload:

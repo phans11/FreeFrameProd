@@ -6,14 +6,14 @@ Validierung der Plugin-Funktion auf Spigot `1.8.8` und `1.21.11`.
 ## Voraussetzungen
 - Server A: Spigot `1.8.8`
 - Server B: Spigot `1.21.11`
-- Plugin-JAR: `target/FreeFrame-1.2.0.jar`
+- Plugin-JAR: `target/FreeFrame-1.4.0.jar`
 - Testspieler:
   - `Admin` (OP, alle Rechte)
   - `User` (keine Rechte)
 
 ## Installation
 - Server stoppen.
-- `FreeFrame-1.2.0.jar` in `plugins/` kopieren.
+- `FreeFrame-1.4.0.jar` in `plugins/` kopieren.
 - Server starten.
 - Prüfen, ob im Log `Status: Enabled` erscheint.
 - Prüfen, ob `plugins/FreeFrame/config.yml` erzeugt wurde.
@@ -21,7 +21,7 @@ Validierung der Plugin-Funktion auf Spigot `1.8.8` und `1.21.11`.
 ## Funktionstests (auf beiden Versionen)
 1. Command-Basis
 - `/freeframe` zeigt Usage-Text.
-- `/freeframe info` zeigt Plugin-Infos und Version `1.2.0`.
+- `/freeframe info` zeigt Plugin-Infos und Version `1.4.0`.
 
 2. Reload-Berechtigung
 - `User`: `/freeframe reload` -> Permission-Fehler.
@@ -31,6 +31,7 @@ Validierung der Plugin-Funktion auf Spigot `1.8.8` und `1.21.11`.
 - ItemFrame platzieren, stackbares Item einsetzen (z. B. Stone).
 - Rechtsklick auf Frame -> GUI mit 3 Items auf Slots 2/4/6.
 - Prüfen: Item-Anzahl entspricht `freeframe.item.amount`.
+- Prüfen: Im GUI keine Items verschiebbar (Klick/Shift-Klick/Drag alles blockiert).
 
 4. Destroy-Schutz
 - `User` versucht ItemFrame zu zerstören -> blockiert + Fehlermeldung.
@@ -38,7 +39,11 @@ Validierung der Plugin-Funktion auf Spigot `1.8.8` und `1.21.11`.
 - `Admin` in Creative, nicht sneaken -> blockiert + Sneak-Hinweis.
 - `Admin` in Creative + sneaken -> Zerstören erlaubt + Erfolgsmeldung.
 
-5. Pfeil-Schutz
+5. Normale ItemFrames
+- Normales ItemFrame, das nie als FreeFrame genutzt wurde, platzieren.
+- Als `User` zerstören versuchen -> darf nicht vom Plugin blockiert werden.
+
+6. Pfeil-Schutz
 - Mit Bogen auf ItemFrame schießen -> Schaden wird blockiert.
 
 ## Version-spezifisch
