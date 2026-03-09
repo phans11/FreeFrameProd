@@ -59,6 +59,8 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.ownerManagement.enabled", true);
         config.addDefault("freeframe.chestRestock.enabled", true);
         config.addDefault("freeframe.chestRestock.requireLinkedChest", false);
+        config.addDefault("freeframe.chestRestock.route.scanRadius", 2);
+        config.addDefault("freeframe.chestRestock.route.networkEnabled", true);
 
         config.addDefault("freeframe.access.requireOwner", false);
         config.addDefault("freeframe.access.bypassPermission", "freeframe.access.bypass");
@@ -83,6 +85,15 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.shops.offerFiltered", "%prefix% &cThis shop type is currently disabled.");
         config.addDefault("freeframe.security.invalid", "%prefix% &cTransaction signature invalid.");
         config.addDefault("freeframe.security.duplicate", "%prefix% &eDuplicate purchase blocked.");
+        config.addDefault("freeframe.reputation.enabled", true);
+        config.addDefault("freeframe.reputation.blockThreshold", 85.0D);
+        config.addDefault("freeframe.reputation.highValueThreshold", 500.0D);
+        config.addDefault("freeframe.reputation.blocked", "%prefix% &cPurchase blocked by fraud protection.");
+        config.addDefault("freeframe.reputation.weights.failure", 8.0D);
+        config.addDefault("freeframe.reputation.weights.duplicate", 5.0D);
+        config.addDefault("freeframe.reputation.weights.invalidSignature", 16.0D);
+        config.addDefault("freeframe.reputation.weights.successDecay", 0.25D);
+        config.addDefault("freeframe.reputation.weights.highValuePurchase", 4.0D);
 
         config.addDefault("freeframe.frame.inactive", "%prefix% &cThis FreeFrame is currently inactive.");
         config.addDefault("freeframe.types.previewOnly", "%prefix% &7This frame is preview-only.");
@@ -158,6 +169,12 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.logging.exportDirectory", "exports");
         config.addDefault("freeframe.webhooks.enabled", false);
         config.addDefault("freeframe.webhooks.discordUrl", "");
+        config.addDefault("freeframe.webhooks.endpoints", Collections.emptyList());
+        config.addDefault("freeframe.webhooks.schemaVersion", "2.0");
+        config.addDefault("freeframe.webhooks.secret", "");
+        config.addDefault("freeframe.webhooks.timeoutMillis", 4000);
+        config.addDefault("freeframe.webhooks.maxRetries", 3);
+        config.addDefault("freeframe.webhooks.retryDelayMillis", 2000L);
 
         config.addDefault("freeframe.display.enabled", true);
         config.addDefault("freeframe.display.removeOnDisable", false);
@@ -172,6 +189,13 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.display.armorStand.small", true);
         config.addDefault("freeframe.display.armorStand.marker", true);
         config.addDefault("freeframe.display.armorStand.customNameVisible", true);
+        config.addDefault("freeframe.branding.enabled", true);
+        config.addDefault("freeframe.branding.defaultTheme", "classic");
+        config.addDefault("freeframe.branding.defaultAdminTheme", "admin");
+        config.addDefault("freeframe.branding.defaultUserTheme", "classic");
+        config.addDefault("freeframe.branding.themes.classic.displayTemplate", "&e%item% &7| &6%currency%%price% &7| &bStock: %stock%");
+        config.addDefault("freeframe.branding.themes.admin.displayTemplate", "&c[ADMIN] &f%item% &8| &6%currency%%price% &8| &bStock:%stock%");
+        config.addDefault("freeframe.branding.themes.seasonal.displayTemplate", "&d[%campaign%] &f%item% &8| &6%currency%%price% &8| &bStock:%stock%");
 
         config.addDefault("freeframe.restrictions.denied", "%prefix% &cFreeFrame is disabled in this world/region.");
         config.addDefault("freeframe.restrictions.worlds.enabled", false);
@@ -251,6 +275,30 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.dashboard.token", "");
         config.addDefault("freeframe.security.secret", "");
         config.addDefault("freeframe.security.idempotencyBucketMillis", 1500L);
+        config.addDefault("freeframe.campaigns.enabled", true);
+        config.addDefault("freeframe.campaigns.timezone", "UTC");
+        config.addDefault("freeframe.campaigns.defaultRule", "");
+        config.addDefault("freeframe.campaigns.rules.flash.enabled", false);
+        config.addDefault("freeframe.campaigns.rules.flash.start", "2026-01-01T00:00");
+        config.addDefault("freeframe.campaigns.rules.flash.end", "2026-12-31T23:59");
+        config.addDefault("freeframe.campaigns.rules.flash.priceMultiplier", 0.90D);
+        config.addDefault("freeframe.campaigns.rules.flash.taxOverridePercent", 2.5D);
+        config.addDefault("freeframe.campaigns.rules.flash.brandingOverride", "seasonal");
+        config.addDefault("freeframe.moderation.enabled", true);
+        config.addDefault("freeframe.moderation.allowOwnerFrameFreeze", true);
+        config.addDefault("freeframe.networkSync.enabled", false);
+        config.addDefault("freeframe.networkSync.mode", "none");
+        config.addDefault("freeframe.networkSync.bridgeChannel", "freeframe-sync");
+        config.addDefault("freeframe.networkSync.filePollTicks", 100L);
+        config.addDefault("freeframe.networkSync.eventTtlMillis", 180000L);
+        config.addDefault("freeframe.networkSync.applyStock", true);
+        config.addDefault("freeframe.networkSync.applyPrice", false);
+        config.addDefault("freeframe.networkSync.applyRevenue", false);
+        config.addDefault("freeframe.proxy.bungeecord.enabled", true);
+        config.addDefault("freeframe.proxy.velocity.enabled", true);
+        config.addDefault("freeframe.proxy.velocity.channel", "freeframe:sync");
+        config.addDefault("freeframe.analytics.enabled", true);
+        config.addDefault("freeframe.migration.zeroDowntime.enabled", true);
 
         config.options().copyDefaults(true);
         this.validateConfigurationValues();
@@ -370,6 +418,10 @@ public class ConfigurationMessages {
         if (config.getLong("freeframe.stock.autoRefill.defaultIntervalMillis", 300000L) < 0L) {
             config.set("freeframe.stock.autoRefill.defaultIntervalMillis", 300000L);
         }
+        int scanRadius = config.getInt("freeframe.chestRestock.route.scanRadius", 2);
+        if (scanRadius < 1 || scanRadius > 6) {
+            config.set("freeframe.chestRestock.route.scanRadius", 2);
+        }
 
         String offerMode = config.getString("freeframe.shops.offerMode", "BOTH");
         if (!"ADMIN".equalsIgnoreCase(offerMode) && !"USER".equalsIgnoreCase(offerMode) && !"BOTH".equalsIgnoreCase(offerMode)) {
@@ -396,10 +448,40 @@ public class ConfigurationMessages {
         if (config.getLong("freeframe.security.idempotencyBucketMillis", 1500L) < 250L) {
             config.set("freeframe.security.idempotencyBucketMillis", 1500L);
         }
+        if (config.getDouble("freeframe.reputation.blockThreshold", 85.0D) < 0.0D) {
+            config.set("freeframe.reputation.blockThreshold", 85.0D);
+        }
+        if (config.getDouble("freeframe.reputation.highValueThreshold", 500.0D) < 0.0D) {
+            config.set("freeframe.reputation.highValueThreshold", 500.0D);
+        }
 
         int dashboardPort = config.getInt("freeframe.dashboard.port", 8095);
         if (dashboardPort < 1 || dashboardPort > 65535) {
             config.set("freeframe.dashboard.port", 8095);
+        }
+        int webhookTimeout = config.getInt("freeframe.webhooks.timeoutMillis", 4000);
+        if (webhookTimeout < 100 || webhookTimeout > 60000) {
+            config.set("freeframe.webhooks.timeoutMillis", 4000);
+        }
+        if (config.getInt("freeframe.webhooks.maxRetries", 3) < 0) {
+            config.set("freeframe.webhooks.maxRetries", 3);
+        }
+        if (config.getLong("freeframe.webhooks.retryDelayMillis", 2000L) < 100L) {
+            config.set("freeframe.webhooks.retryDelayMillis", 2000L);
+        }
+        String syncMode = config.getString("freeframe.networkSync.mode", "none");
+        if (!"none".equalsIgnoreCase(syncMode)
+            && !"bungee".equalsIgnoreCase(syncMode)
+            && !"velocity".equalsIgnoreCase(syncMode)
+            && !"file".equalsIgnoreCase(syncMode)
+            && !"hybrid".equalsIgnoreCase(syncMode)) {
+            config.set("freeframe.networkSync.mode", "none");
+        }
+        if (config.getLong("freeframe.networkSync.filePollTicks", 100L) < 20L) {
+            config.set("freeframe.networkSync.filePollTicks", 100L);
+        }
+        if (config.getLong("freeframe.networkSync.eventTtlMillis", 180000L) < 10000L) {
+            config.set("freeframe.networkSync.eventTtlMillis", 180000L);
         }
 
         if (config.getInt("freeframe.limits.maxItemsPerWindow", 64) < 1) {

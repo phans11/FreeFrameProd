@@ -81,6 +81,7 @@ public class DefaultPurchaseProcessor implements PurchaseProcessor {
         long now = System.currentTimeMillis();
         price = this.freeframe.getSeasonalRulesService().applyPriceMultiplier(frameData, price, now);
         price = this.freeframe.getDynamicPricingService().apply(frameData, price, availableStock, Math.max(1, frameData.getMaxStock()), now);
+        price = this.freeframe.getCampaignRuntimeService().applyPrice(frameData, price, now);
         double finalPrice = this.discountService.applyDiscount(player, frameData, price);
         return PurchaseResult.success("freeframe.purchase.success", "%prefix% &aPurchase completed.", finalPrice, amount);
     }

@@ -1,8 +1,11 @@
 package de.isolveproblems.freeframe.commands;
 
 import de.isolveproblems.freeframe.FreeFrame;
+import de.isolveproblems.freeframe.api.BuyerRiskProfile;
 import de.isolveproblems.freeframe.api.FrameType;
+import de.isolveproblems.freeframe.api.MigrationPreview;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
+import de.isolveproblems.freeframe.api.RestockRouteReport;
 import de.isolveproblems.freeframe.api.SaleMode;
 import de.isolveproblems.freeframe.api.ShopOwnerType;
 import de.isolveproblems.freeframe.utils.BlockReference;
@@ -13,6 +16,7 @@ import de.isolveproblems.freeframe.utils.FreeFrameData;
 import de.isolveproblems.freeframe.utils.JournalReplayReport;
 import de.isolveproblems.freeframe.utils.SetupWandItem;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -137,6 +141,42 @@ public class FreeFrameCommand implements TabExecutor {
             this.handleStats(sender, args);
             return true;
         }
+        if ("analytics".equals(subCommand)) {
+            this.handleAnalytics(sender, args);
+            return true;
+        }
+        if ("restockroute".equals(subCommand)) {
+            this.handleRestockRoute(sender, args);
+            return true;
+        }
+        if ("trust".equals(subCommand)) {
+            this.handleTrust(sender, args);
+            return true;
+        }
+        if ("brand".equals(subCommand)) {
+            this.handleBrand(sender, args);
+            return true;
+        }
+        if ("campaign".equals(subCommand)) {
+            this.handleCampaign(sender, args);
+            return true;
+        }
+        if ("moderate".equals(subCommand)) {
+            this.handleModeration(sender, args);
+            return true;
+        }
+        if ("sync".equals(subCommand)) {
+            this.handleSync(sender, args);
+            return true;
+        }
+        if ("platform".equals(subCommand)) {
+            this.handlePlatform(sender);
+            return true;
+        }
+        if ("zdm".equals(subCommand)) {
+            this.handleZeroDowntimeMigration(sender, args);
+            return true;
+        }
         if ("backup".equals(subCommand)) {
             if (!this.hasAdminPermission(sender)) {
                 sender.sendMessage(this.freeframe.getErrorPermissionMessage());
@@ -255,6 +295,12 @@ public class FreeFrameCommand implements TabExecutor {
             this.addCompletion(completions, "season", args[0]);
             this.addCompletion(completions, "auction", args[0]);
             this.addCompletion(completions, "stats", args[0]);
+            this.addCompletion(completions, "analytics", args[0]);
+            this.addCompletion(completions, "restockroute", args[0]);
+            this.addCompletion(completions, "brand", args[0]);
+            this.addCompletion(completions, "campaign", args[0]);
+            this.addCompletion(completions, "sync", args[0]);
+            this.addCompletion(completions, "platform", args[0]);
 
             if (this.hasAdminPermission(sender)) {
                 this.addCompletion(completions, "list", args[0]);
@@ -272,12 +318,15 @@ public class FreeFrameCommand implements TabExecutor {
                 this.addCompletion(completions, "migrate", args[0]);
                 this.addCompletion(completions, "repair", args[0]);
                 this.addCompletion(completions, "debug", args[0]);
+                this.addCompletion(completions, "trust", args[0]);
+                this.addCompletion(completions, "moderate", args[0]);
+                this.addCompletion(completions, "zdm", args[0]);
             }
             return completions;
         }
 
         String subCommand = args[0].toLowerCase(Locale.ENGLISH);
-        if (args.length == 2 && this.equalsAny(subCommand, "inspect", "remove", "setprice", "setstock", "settype", "setprofile", "clearprofiles", "linkchest", "shoptype", "bid")) {
+        if (args.length == 2 && this.equalsAny(subCommand, "inspect", "remove", "setprice", "setstock", "settype", "setprofile", "clearprofiles", "linkchest", "shoptype", "bid", "restockroute")) {
             return this.completeFrameIds(args[1]);
         }
         if (args.length == 2 && "restore".equals(subCommand)) {
@@ -334,6 +383,91 @@ public class FreeFrameCommand implements TabExecutor {
         }
         if (args.length == 3 && "stats".equals(subCommand) && "frame".equalsIgnoreCase(args[1])) {
             return this.completeFrameIds(args[2]);
+        }
+        if (args.length == 2 && "analytics".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "global", args[1]);
+            this.addCompletion(completions, "frame", args[1]);
+            this.addCompletion(completions, "player", args[1]);
+            return completions;
+        }
+        if (args.length == 3 && "analytics".equals(subCommand) && "frame".equalsIgnoreCase(args[1])) {
+            return this.completeFrameIds(args[2]);
+        }
+        if (args.length == 3 && "analytics".equals(subCommand) && "player".equalsIgnoreCase(args[1])) {
+            return this.completeOnlinePlayerNames(args[2]);
+        }
+        if (args.length == 2 && "trust".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "info", args[1]);
+            this.addCompletion(completions, "set", args[1]);
+            this.addCompletion(completions, "clear", args[1]);
+            return completions;
+        }
+        if (args.length == 3 && "trust".equals(subCommand) && this.equalsAny(args[1], "info", "set", "clear")) {
+            return this.completeOnlinePlayerNames(args[2]);
+        }
+        if (args.length == 2 && "brand".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "set", args[1]);
+            this.addCompletion(completions, "clear", args[1]);
+            this.addCompletion(completions, "info", args[1]);
+            return completions;
+        }
+        if (args.length == 3 && "brand".equals(subCommand) && this.equalsAny(args[1], "set", "clear", "info")) {
+            return this.completeFrameIds(args[2]);
+        }
+        if (args.length == 2 && "campaign".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "set", args[1]);
+            this.addCompletion(completions, "clear", args[1]);
+            this.addCompletion(completions, "info", args[1]);
+            return completions;
+        }
+        if (args.length == 3 && "campaign".equals(subCommand) && this.equalsAny(args[1], "set", "clear", "info")) {
+            return this.completeFrameIds(args[2]);
+        }
+        if (args.length == 2 && "moderate".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "frame", args[1]);
+            this.addCompletion(completions, "player", args[1]);
+            this.addCompletion(completions, "log", args[1]);
+            return completions;
+        }
+        if (args.length == 3 && "moderate".equals(subCommand) && "frame".equalsIgnoreCase(args[1])) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "freeze", args[2]);
+            this.addCompletion(completions, "unfreeze", args[2]);
+            this.addCompletion(completions, "status", args[2]);
+            return completions;
+        }
+        if (args.length == 4 && "moderate".equals(subCommand) && "frame".equalsIgnoreCase(args[1])) {
+            return this.completeFrameIds(args[3]);
+        }
+        if (args.length == 3 && "moderate".equals(subCommand) && "player".equalsIgnoreCase(args[1])) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "restrict", args[2]);
+            this.addCompletion(completions, "unrestrict", args[2]);
+            this.addCompletion(completions, "status", args[2]);
+            return completions;
+        }
+        if (args.length == 4 && "moderate".equals(subCommand) && "player".equalsIgnoreCase(args[1])) {
+            return this.completeOnlinePlayerNames(args[3]);
+        }
+        if (args.length == 2 && "sync".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "status", args[1]);
+            this.addCompletion(completions, "push", args[1]);
+            return completions;
+        }
+        if (args.length == 3 && "sync".equals(subCommand) && "push".equalsIgnoreCase(args[1])) {
+            return this.completeFrameIds(args[2]);
+        }
+        if (args.length == 2 && "zdm".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "plan", args[1]);
+            this.addCompletion(completions, "apply", args[1]);
+            return completions;
         }
         if (args.length == 2 && "storage".equals(subCommand)) {
             List<String> completions = new ArrayList<String>();
@@ -506,6 +640,8 @@ public class FreeFrameCommand implements TabExecutor {
         sender.sendMessage(this.freeframe.colorize("&6Sale Mode: &e" + data.getSaleMode().name()));
         sender.sendMessage(this.freeframe.colorize("&6Network: &e" + (data.getNetworkId().isEmpty() ? "-" : data.getNetworkId())));
         sender.sendMessage(this.freeframe.colorize("&6Season Rule: &e" + (data.getSeasonRuleId().isEmpty() ? "-" : data.getSeasonRuleId())));
+        sender.sendMessage(this.freeframe.colorize("&6Branding: &e" + (data.getBrandingId().isEmpty() ? "-" : data.getBrandingId())));
+        sender.sendMessage(this.freeframe.colorize("&6Campaign: &e" + (data.getCampaignId().isEmpty() ? "-" : data.getCampaignId())));
         sender.sendMessage(this.freeframe.colorize("&6Base Price: &e" + data.getCurrency() + this.formatPrice(data.getPrice())));
         sender.sendMessage(this.freeframe.colorize("&6Stock: &e" + data.getStock() + "/" + data.getMaxStock()));
         sender.sendMessage(this.freeframe.colorize("&6Auto Refill: &e" + data.isAutoRefill() + " &7(" + data.getRefillIntervalMillis() + "ms)"));
@@ -977,6 +1113,477 @@ public class FreeFrameCommand implements TabExecutor {
         sender.sendMessage(this.freeframe.colorize("&8- &7Money (cents): &e" + stats.get("moneyCents")));
     }
 
+    private void handleAnalytics(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cOnly players can open analytics UI."));
+            return;
+        }
+        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.analytics.enabled", true)) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cAnalytics UI is disabled in config."));
+            return;
+        }
+
+        Player player = (Player) sender;
+        if (args.length < 2 || "global".equalsIgnoreCase(args[1])) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return;
+            }
+            this.freeframe.getAnalyticsUiService().openGlobal(player);
+            return;
+        }
+
+        String mode = args[1].toLowerCase(Locale.ENGLISH);
+        if ("frame".equals(mode)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe analytics frame <id>"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            this.freeframe.getAnalyticsUiService().openFrame(player, data);
+            return;
+        }
+        if ("player".equals(mode)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return;
+            }
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe analytics player <name|uuid>"));
+                return;
+            }
+            String playerId = this.resolvePlayerIdentifier(args[2]);
+            this.freeframe.getAnalyticsUiService().openPlayer(player, playerId);
+            return;
+        }
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe analytics <global|frame|player> [target]"));
+    }
+
+    private void handleRestockRoute(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe restockroute <id>"));
+            return;
+        }
+        if (this.freeframe.getRestockRoutingService() == null) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cRestock routing service is unavailable."));
+            return;
+        }
+
+        FreeFrameData data = this.requireManagedFrame(sender, args[1], true);
+        if (data == null) {
+            return;
+        }
+
+        Material material = Material.matchMaterial(data.getItemType());
+        if (material == null || "AIR".equals(material.name())) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cCould not resolve item material for this frame."));
+            return;
+        }
+        RestockRouteReport report = this.freeframe.getRestockRoutingService().previewRoute(data, new ItemStack(material, 1));
+        sender.sendMessage(this.freeframe.formatMessage(
+            "%prefix% &7Restock route for &e" + data.getId()
+                + " &7requested=&e" + report.getRequested()
+                + " &7moved=&e" + report.getMoved()
+                + " &7missing=&e" + report.getMissing()
+        ));
+        if (report.getRouteNodes().isEmpty()) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &8- &7No route nodes with matching stock found."));
+            return;
+        }
+        for (String node : report.getRouteNodes()) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &8- &7" + node));
+        }
+    }
+
+    private void handleTrust(CommandSender sender, String[] args) {
+        if (!this.hasAdminPermission(sender)) {
+            sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+            return;
+        }
+        if (args.length < 3) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe trust <info|set|clear> <player|uuid> [score]"));
+            return;
+        }
+
+        String action = args[1].toLowerCase(Locale.ENGLISH);
+        String playerId = this.resolvePlayerIdentifier(args[2]);
+        if ("info".equals(action)) {
+            BuyerRiskProfile profile = this.freeframe.getBuyerReputationService().inspect(playerId);
+            sender.sendMessage(this.freeframe.formatMessage(
+                "%prefix% &7Trust profile &e" + playerId
+                    + " &7score=&e" + this.formatPrice(profile.getScore())
+                    + " &7blocked=&e" + profile.isBlocked()
+            ));
+            return;
+        }
+        if ("set".equals(action)) {
+            if (args.length < 4) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe trust set <player|uuid> <score>"));
+                return;
+            }
+            double score;
+            try {
+                score = Double.parseDouble(args[3]);
+            } catch (NumberFormatException exception) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cScore must be numeric."));
+                return;
+            }
+            this.freeframe.getBuyerReputationService().setManualRiskScore(playerId, score, sender.getName(), "manual-command");
+            this.logAction(sender, "trust-set", playerId + "=" + score);
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aManual trust score set for &e" + playerId + "&a."));
+            return;
+        }
+        if ("clear".equals(action)) {
+            this.freeframe.getBuyerReputationService().clearManualRiskScore(playerId, sender.getName());
+            this.logAction(sender, "trust-clear", playerId);
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aManual trust score cleared for &e" + playerId + "&a."));
+            return;
+        }
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe trust <info|set|clear> <player|uuid> [score]"));
+    }
+
+    private void handleBrand(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe brand <set|clear|info> ..."));
+            return;
+        }
+        String action = args[1].toLowerCase(Locale.ENGLISH);
+        if ("set".equals(action)) {
+            if (args.length < 4) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe brand set <id> <themeId>"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            String themeId = args[3].trim().toLowerCase(Locale.ENGLISH);
+            if ("none".equals(themeId) || "null".equals(themeId)) {
+                themeId = "";
+            }
+            data.setBrandingId(themeId);
+            this.freeframe.getFrameRegistry().saveToConfig();
+            this.freeframe.getDisplayService().refresh(data);
+            this.logAction(sender, "brand-set", data.getId() + "=" + themeId);
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aBrand theme for &e" + data.getId() + " &aset to &e" + (themeId.isEmpty() ? "-" : themeId)));
+            return;
+        }
+        if ("clear".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe brand clear <id>"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            data.setBrandingId("");
+            this.freeframe.getFrameRegistry().saveToConfig();
+            this.freeframe.getDisplayService().refresh(data);
+            this.logAction(sender, "brand-clear", data.getId());
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aBrand theme for &e" + data.getId() + " &acleared."));
+            return;
+        }
+        if ("info".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe brand info <id>"));
+                return;
+            }
+            FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[2]);
+            if (data == null) {
+                sender.sendMessage(this.unknownFrameMessage(args[2]));
+                return;
+            }
+            String resolved = this.freeframe.getBrandingService().resolveThemeId(data);
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &7Branding for &e" + data.getId() + " &7configured=&e" + (data.getBrandingId().isEmpty() ? "-" : data.getBrandingId()) + " &7resolved=&e" + resolved));
+            return;
+        }
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe brand <set|clear|info> ..."));
+    }
+
+    private void handleCampaign(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe campaign <set|clear|info> ..."));
+            return;
+        }
+        String action = args[1].toLowerCase(Locale.ENGLISH);
+        if ("set".equals(action)) {
+            if (args.length < 4) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe campaign set <id> <campaignId>"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            String campaignId = args[3].trim().toLowerCase(Locale.ENGLISH);
+            if ("none".equals(campaignId) || "null".equals(campaignId)) {
+                campaignId = "";
+            }
+            data.setCampaignId(campaignId);
+            this.freeframe.getFrameRegistry().saveToConfig();
+            this.freeframe.getDisplayService().refresh(data);
+            this.logAction(sender, "campaign-set", data.getId() + "=" + campaignId);
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aCampaign for &e" + data.getId() + " &aset to &e" + (campaignId.isEmpty() ? "-" : campaignId)));
+            return;
+        }
+        if ("clear".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe campaign clear <id>"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            data.setCampaignId("");
+            this.freeframe.getFrameRegistry().saveToConfig();
+            this.freeframe.getDisplayService().refresh(data);
+            this.logAction(sender, "campaign-clear", data.getId());
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aCampaign for &e" + data.getId() + " &acleared."));
+            return;
+        }
+        if ("info".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe campaign info <id>"));
+                return;
+            }
+            FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[2]);
+            if (data == null) {
+                sender.sendMessage(this.unknownFrameMessage(args[2]));
+                return;
+            }
+            de.isolveproblems.freeframe.api.CampaignEffect effect = this.freeframe.getCampaignRuntimeService().resolve(data, System.currentTimeMillis());
+            sender.sendMessage(this.freeframe.formatMessage(
+                "%prefix% &7Campaign for &e" + data.getId()
+                    + " &7configured=&e" + (data.getCampaignId().isEmpty() ? "-" : data.getCampaignId())
+                    + " &7active=&e" + effect.isActive()
+                    + " &7multiplier=&e" + this.formatPrice(effect.getPriceMultiplier())
+            ));
+            return;
+        }
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe campaign <set|clear|info> ..."));
+    }
+
+    private void handleModeration(CommandSender sender, String[] args) {
+        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.moderation.enabled", true)) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cModeration features are disabled."));
+            return;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe moderate <frame|player|log> ..."));
+            return;
+        }
+
+        String mode = args[1].toLowerCase(Locale.ENGLISH);
+        if ("frame".equals(mode)) {
+            if (args.length < 4) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe moderate frame <freeze|unfreeze|status> <id> [reason]"));
+                return;
+            }
+            String action = args[2].toLowerCase(Locale.ENGLISH);
+            FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[3]);
+            if (data == null) {
+                sender.sendMessage(this.unknownFrameMessage(args[3]));
+                return;
+            }
+            boolean ownerAllowed = this.freeframe.getPluginConfig().getBoolean("freeframe.moderation.allowOwnerFrameFreeze", true);
+            boolean ownerCanManage = this.canManageOrAdmin(sender, data);
+            if (!ownerCanManage || (!this.hasAdminPermission(sender) && !ownerAllowed)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return;
+            }
+
+            if ("freeze".equals(action)) {
+                String reason = args.length > 4 ? this.joinArgs(args, 4) : "manual";
+                this.freeframe.getModerationService().freezeFrame(data, sender.getName(), reason);
+                this.freeframe.getMetricsTracker().incrementModerationActions();
+                this.logAction(sender, "moderate-freeze-frame", data.getId() + " reason=" + reason);
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &aFrame &e" + data.getId() + " &afrozen."));
+                return;
+            }
+            if ("unfreeze".equals(action)) {
+                this.freeframe.getModerationService().unfreezeFrame(data.getId(), sender.getName());
+                this.freeframe.getMetricsTracker().incrementModerationActions();
+                this.logAction(sender, "moderate-unfreeze-frame", data.getId());
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &aFrame &e" + data.getId() + " &aunfrozen."));
+                return;
+            }
+            if ("status".equals(action)) {
+                boolean frozen = this.freeframe.getModerationService().isFrameFrozen(data.getId());
+                sender.sendMessage(this.freeframe.formatMessage(
+                    "%prefix% &7Frame &e" + data.getId() + " &7frozen=&e" + frozen
+                        + (frozen ? " &7reason=&e" + this.freeframe.getModerationService().frameRestrictionReason(data.getId()) : "")
+                ));
+                return;
+            }
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe moderate frame <freeze|unfreeze|status> <id> [reason]"));
+            return;
+        }
+
+        if ("player".equals(mode)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return;
+            }
+            if (args.length < 4) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe moderate player <restrict|unrestrict|status> <player|uuid> [reason]"));
+                return;
+            }
+            String action = args[2].toLowerCase(Locale.ENGLISH);
+            String playerId = this.resolvePlayerIdentifier(args[3]);
+            if ("restrict".equals(action)) {
+                String reason = args.length > 4 ? this.joinArgs(args, 4) : "manual";
+                this.freeframe.getModerationService().restrictPlayer(playerId, sender.getName(), reason);
+                this.freeframe.getMetricsTracker().incrementModerationActions();
+                this.logAction(sender, "moderate-restrict-player", playerId + " reason=" + reason);
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &aPlayer restricted: &e" + playerId));
+                return;
+            }
+            if ("unrestrict".equals(action)) {
+                this.freeframe.getModerationService().unrestrictPlayer(playerId, sender.getName());
+                this.freeframe.getMetricsTracker().incrementModerationActions();
+                this.logAction(sender, "moderate-unrestrict-player", playerId);
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &aPlayer unrestricted: &e" + playerId));
+                return;
+            }
+            if ("status".equals(action)) {
+                boolean restricted = this.freeframe.getModerationService().isPlayerRestricted(playerId);
+                sender.sendMessage(this.freeframe.formatMessage(
+                    "%prefix% &7Player &e" + playerId + " &7restricted=&e" + restricted
+                        + (restricted ? " &7reason=&e" + this.freeframe.getModerationService().playerRestrictionReason(playerId) : "")
+                ));
+                return;
+            }
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe moderate player <restrict|unrestrict|status> <player|uuid> [reason]"));
+            return;
+        }
+
+        if ("log".equals(mode)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return;
+            }
+            int limit = 10;
+            if (args.length >= 3) {
+                try {
+                    limit = Integer.parseInt(args[2]);
+                } catch (NumberFormatException ignored) {
+                    limit = 10;
+                }
+            }
+            List<String> lines = this.freeframe.getModerationService().tailLog(limit);
+            if (lines.isEmpty()) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &7No moderation log entries."));
+                return;
+            }
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &6Moderation log:"));
+            for (String line : lines) {
+                sender.sendMessage(this.freeframe.colorize("&8- &7" + line));
+            }
+            return;
+        }
+
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe moderate <frame|player|log> ..."));
+    }
+
+    private void handleSync(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &7Sync mode: &e" + this.freeframe.getNetworkSyncService().describeMode()));
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &7Usage: /freeframe sync <status|push> [id]"));
+            return;
+        }
+        String action = args[1].toLowerCase(Locale.ENGLISH);
+        if ("status".equals(action)) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &7Sync mode: &e" + this.freeframe.getNetworkSyncService().describeMode()));
+            return;
+        }
+        if ("push".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe sync push <id|all>"));
+                return;
+            }
+            if ("all".equalsIgnoreCase(args[2])) {
+                if (!this.hasAdminPermission(sender)) {
+                    sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                    return;
+                }
+                int pushed = 0;
+                for (FreeFrameData data : this.freeframe.getFrameRegistry().listFrames()) {
+                    this.freeframe.getNetworkSyncService().publishFrameUpdate(data, "manual-sync-all");
+                    pushed++;
+                }
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &aPushed &e" + pushed + " &aframe updates to sync bridge."));
+                this.logAction(sender, "sync-push-all", String.valueOf(pushed));
+                return;
+            }
+
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            this.freeframe.getNetworkSyncService().publishFrameUpdate(data, "manual-sync");
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aPushed sync update for &e" + data.getId() + "&a."));
+            this.logAction(sender, "sync-push", data.getId());
+            return;
+        }
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe sync <status|push> [id]"));
+    }
+
+    private void handlePlatform(CommandSender sender) {
+        Map<String, String> capabilities = this.freeframe.getPlatformSupportService().describeCapabilities();
+        sender.sendMessage(this.freeframe.getPrefix());
+        sender.sendMessage(this.freeframe.colorize("&6Platform Capabilities:"));
+        for (Map.Entry<String, String> entry : capabilities.entrySet()) {
+            sender.sendMessage(this.freeframe.colorize("&8- &7" + entry.getKey() + ": &e" + entry.getValue()));
+        }
+        sender.sendMessage(this.freeframe.getPrefix());
+    }
+
+    private void handleZeroDowntimeMigration(CommandSender sender, String[] args) {
+        if (!this.hasAdminPermission(sender)) {
+            sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+            return;
+        }
+        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.migration.zeroDowntime.enabled", true)) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cZero-downtime migration is disabled in config."));
+            return;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe zdm <plan|apply>"));
+            return;
+        }
+
+        String action = args[1].toLowerCase(Locale.ENGLISH);
+        MigrationPreview preview;
+        if ("plan".equals(action)) {
+            preview = this.freeframe.getZeroDowntimeMigrationService().preview();
+            sender.sendMessage(this.freeframe.formatMessage(
+                "%prefix% &7ZDM plan: scanned=&e" + preview.getScannedFrames()
+                    + " &7needsBranding=&e" + preview.getNeedsBranding()
+                    + " &7needsCampaign=&e" + preview.getNeedsCampaign()
+                    + " &7needsNormalization=&e" + preview.getNeedsNormalization()
+            ));
+            this.logAction(sender, "zdm-plan", String.valueOf(preview.getScannedFrames()));
+            return;
+        }
+        if ("apply".equals(action)) {
+            preview = this.freeframe.getZeroDowntimeMigrationService().apply();
+            sender.sendMessage(this.freeframe.formatMessage(
+                "%prefix% &aZDM apply done: scanned=&e" + preview.getScannedFrames()
+                    + " &aremainingBranding=&e" + preview.getNeedsBranding()
+                    + " &aremainingCampaign=&e" + preview.getNeedsCampaign()
+                    + " &aremainingNormalization=&e" + preview.getNeedsNormalization()
+            ));
+            this.logAction(sender, "zdm-apply", String.valueOf(preview.getScannedFrames()));
+            return;
+        }
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe zdm <plan|apply>"));
+    }
+
     private void handleBackup(CommandSender sender) {
         File backup = this.freeframe.getBackupService().createBackup();
         if (backup == null) {
@@ -1120,6 +1727,12 @@ public class FreeFrameCommand implements TabExecutor {
         sender.sendMessage(this.freeframe.colorize("&7/freeframe &fseason <set|clear|info> ... &8- &7Manage seasonal rules"));
         sender.sendMessage(this.freeframe.colorize("&7/freeframe &fauction <start|stop|info> ... &8- &7Manage auctions"));
         sender.sendMessage(this.freeframe.colorize("&7/freeframe &fstats <frame|player> <target> &8- &7Show purchase stats"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fanalytics <global|frame|player> ... &8- &7Open analytics UI"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &frestockroute <id> &8- &7Preview smart restock routes"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fbrand <set|clear|info> ... &8- &7Manage visual branding themes"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fcampaign <set|clear|info> ... &8- &7Manage campaign engine"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fsync <status|push> ... &8- &7Cross-server sync controls"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fplatform &8- &7Show platform compatibility status"));
 
         if (sender.hasPermission(this.freeframe.getConfigHandler().getReloadPermissionNode())) {
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &freload &8- &7Reload config and frame cache"));
@@ -1134,6 +1747,9 @@ public class FreeFrameCommand implements TabExecutor {
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &fbackup|restore|doctor|replay &8- &7Recovery and journal tooling"));
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &fstorage <backend> &8- &7Switch YAML/SQLite/MySQL"));
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &fexport|migrate|repair|debug &8- &7Ops tools"));
+            sender.sendMessage(this.freeframe.colorize("&7/freeframe &ftrust <info|set|clear> ... &8- &7Buyer reputation/fraud controls"));
+            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fmoderate <frame|player|log> ... &8- &7Compliance toolkit"));
+            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fzdm <plan|apply> &8- &7Zero-downtime migration tools"));
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &fwand &8- &7Get setup wand"));
         }
 
@@ -1146,6 +1762,8 @@ public class FreeFrameCommand implements TabExecutor {
         sender.sendMessage(this.freeframe.colorize("&6Version: &e" + this.freeframe.getDescription().getVersion()));
         sender.sendMessage(this.freeframe.colorize("&6Backends: &e" + this.freeframe.getFrameRegistry().getActiveStorageBackend()));
         sender.sendMessage(this.freeframe.colorize("&6Offer Mode: &e" + this.freeframe.getOfferMode().name()));
+        sender.sendMessage(this.freeframe.colorize("&6Platform: &e" + this.freeframe.getPlatformSupportService().detectRuntime()));
+        sender.sendMessage(this.freeframe.colorize("&6Network Sync: &e" + this.freeframe.getNetworkSyncService().describeMode()));
         sender.sendMessage(this.freeframe.getPrefix());
     }
 
@@ -1209,6 +1827,43 @@ public class FreeFrameCommand implements TabExecutor {
         }
         Collections.sort(completions);
         return completions;
+    }
+
+    private List<String> completeOnlinePlayerNames(String currentInput) {
+        List<String> completions = new ArrayList<String>();
+        String lowered = currentInput == null ? "" : currentInput.toLowerCase(Locale.ENGLISH);
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (online == null || online.getName() == null) {
+                continue;
+            }
+            String name = online.getName();
+            if (name.toLowerCase(Locale.ENGLISH).startsWith(lowered)) {
+                completions.add(name);
+            }
+        }
+        Collections.sort(completions);
+        return completions;
+    }
+
+    private String resolvePlayerIdentifier(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return "unknown";
+        }
+        String trimmed = input.trim();
+        if (trimmed.contains("-") && trimmed.length() >= 32) {
+            return trimmed;
+        }
+
+        Player online = Bukkit.getPlayerExact(trimmed);
+        if (online != null && online.getUniqueId() != null) {
+            return online.getUniqueId().toString();
+        }
+
+        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(trimmed);
+        if (offlinePlayer != null && offlinePlayer.getUniqueId() != null) {
+            return offlinePlayer.getUniqueId().toString();
+        }
+        return trimmed;
     }
 
     private int parsePageArg(String[] args, int fallback) {

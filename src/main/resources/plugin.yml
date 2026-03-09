@@ -8,7 +8,7 @@ softdepend: [Vault, PlaceholderAPI, WorldGuard, GriefPrevention]
 commands:
   freeframe:
     description: Main command for FreeFrame
-    usage: /freeframe <help|info|reload|bid|myshops|list|inspect|remove|setprice|setstock|settype|shoptype|setprofile|clearprofiles|linkchest|network|season|auction|stats|backup|restore|doctor|replay|wand|storage|export|migrate|repair|debug>
+    usage: /freeframe <help|info|reload|bid|myshops|list|inspect|remove|setprice|setstock|settype|shoptype|setprofile|clearprofiles|linkchest|network|season|auction|stats|analytics|restockroute|brand|campaign|sync|platform|trust|moderate|zdm|backup|restore|doctor|replay|wand|storage|export|migrate|repair|debug>
     aliases: [ff]
 
 permissions:

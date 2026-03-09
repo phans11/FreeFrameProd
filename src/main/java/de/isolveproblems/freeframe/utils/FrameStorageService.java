@@ -180,7 +180,7 @@ public class FrameStorageService {
 
             String query = "SELECT id,reference,owner_uuid,owner_name,created_at,item_type,price,currency,active,"
                 + "stock,max_stock,auto_refill,refill_interval,last_refill,revenue_total,display_entity_uuid,"
-                + "frame_type,linked_chest,profiles_text,shop_owner_type,network_id,season_rule_id,sale_mode,"
+                + "frame_type,linked_chest,profiles_text,shop_owner_type,network_id,season_rule_id,branding_id,campaign_id,sale_mode,"
                 + "auction_end_at,auction_min_bid,auction_highest_bid,auction_highest_bidder_uuid,"
                 + "auction_highest_bidder_name,collected_tax_total "
                 + "FROM " + table;
@@ -218,6 +218,8 @@ public class FrameStorageService {
                         ShopOwnerType.fromString(resultSet.getString("shop_owner_type")),
                         resultSet.getString("network_id"),
                         resultSet.getString("season_rule_id"),
+                        resultSet.getString("branding_id"),
+                        resultSet.getString("campaign_id"),
                         SaleMode.fromString(resultSet.getString("sale_mode")),
                         resultSet.getLong("auction_end_at"),
                         resultSet.getDouble("auction_min_bid"),
@@ -249,10 +251,10 @@ public class FrameStorageService {
             String insert = "INSERT INTO " + table + " ("
                 + "id,reference,owner_uuid,owner_name,created_at,item_type,price,currency,active,"
                 + "stock,max_stock,auto_refill,refill_interval,last_refill,revenue_total,display_entity_uuid,"
-                + "frame_type,linked_chest,profiles_text,shop_owner_type,network_id,season_rule_id,sale_mode,"
+                + "frame_type,linked_chest,profiles_text,shop_owner_type,network_id,season_rule_id,branding_id,campaign_id,sale_mode,"
                 + "auction_end_at,auction_min_bid,auction_highest_bid,auction_highest_bidder_uuid,"
                 + "auction_highest_bidder_name,collected_tax_total"
-                + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
             try (PreparedStatement statement = connection.prepareStatement(insert)) {
                 if (frames != null) {
@@ -283,13 +285,15 @@ public class FrameStorageService {
                         statement.setString(20, data.getShopOwnerType().name());
                         statement.setString(21, data.getNetworkId());
                         statement.setString(22, data.getSeasonRuleId());
-                        statement.setString(23, data.getSaleMode().name());
-                        statement.setLong(24, data.getAuctionEndAt());
-                        statement.setDouble(25, data.getAuctionMinBid());
-                        statement.setDouble(26, data.getHighestBid());
-                        statement.setString(27, data.getHighestBidderUuid());
-                        statement.setString(28, data.getHighestBidderName());
-                        statement.setDouble(29, data.getCollectedTaxTotal());
+                        statement.setString(23, data.getBrandingId());
+                        statement.setString(24, data.getCampaignId());
+                        statement.setString(25, data.getSaleMode().name());
+                        statement.setLong(26, data.getAuctionEndAt());
+                        statement.setDouble(27, data.getAuctionMinBid());
+                        statement.setDouble(28, data.getHighestBid());
+                        statement.setString(29, data.getHighestBidderUuid());
+                        statement.setString(30, data.getHighestBidderName());
+                        statement.setDouble(31, data.getCollectedTaxTotal());
                         statement.addBatch();
                     }
                 }
@@ -331,6 +335,8 @@ public class FrameStorageService {
                 + "shop_owner_type VARCHAR(16) NOT NULL DEFAULT 'USER',"
                 + "network_id VARCHAR(64) NOT NULL DEFAULT '',"
                 + "season_rule_id VARCHAR(64) NOT NULL DEFAULT '',"
+                + "branding_id VARCHAR(64) NOT NULL DEFAULT '',"
+                + "campaign_id VARCHAR(64) NOT NULL DEFAULT '',"
                 + "sale_mode VARCHAR(16) NOT NULL DEFAULT 'INSTANT',"
                 + "auction_end_at BIGINT NOT NULL DEFAULT 0,"
                 + "auction_min_bid DOUBLE NOT NULL DEFAULT 0,"
@@ -363,6 +369,8 @@ public class FrameStorageService {
                 + "shop_owner_type TEXT NOT NULL DEFAULT 'USER',"
                 + "network_id TEXT NOT NULL DEFAULT '',"
                 + "season_rule_id TEXT NOT NULL DEFAULT '',"
+                + "branding_id TEXT NOT NULL DEFAULT '',"
+                + "campaign_id TEXT NOT NULL DEFAULT '',"
                 + "sale_mode TEXT NOT NULL DEFAULT 'INSTANT',"
                 + "auction_end_at INTEGER NOT NULL DEFAULT 0,"
                 + "auction_min_bid REAL NOT NULL DEFAULT 0,"
@@ -383,6 +391,8 @@ public class FrameStorageService {
         this.ensureColumn(connection, table, "shop_owner_type", type == StorageType.MYSQL ? "VARCHAR(16) NOT NULL DEFAULT 'USER'" : "TEXT NOT NULL DEFAULT 'USER'");
         this.ensureColumn(connection, table, "network_id", type == StorageType.MYSQL ? "VARCHAR(64) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''");
         this.ensureColumn(connection, table, "season_rule_id", type == StorageType.MYSQL ? "VARCHAR(64) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''");
+        this.ensureColumn(connection, table, "branding_id", type == StorageType.MYSQL ? "VARCHAR(64) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''");
+        this.ensureColumn(connection, table, "campaign_id", type == StorageType.MYSQL ? "VARCHAR(64) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''");
         this.ensureColumn(connection, table, "sale_mode", type == StorageType.MYSQL ? "VARCHAR(16) NOT NULL DEFAULT 'INSTANT'" : "TEXT NOT NULL DEFAULT 'INSTANT'");
         this.ensureColumn(connection, table, "auction_end_at", type == StorageType.MYSQL ? "BIGINT NOT NULL DEFAULT 0" : "INTEGER NOT NULL DEFAULT 0");
         this.ensureColumn(connection, table, "auction_min_bid", type == StorageType.MYSQL ? "DOUBLE NOT NULL DEFAULT 0" : "REAL NOT NULL DEFAULT 0");

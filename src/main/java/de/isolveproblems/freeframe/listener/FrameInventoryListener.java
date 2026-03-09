@@ -5,6 +5,8 @@ import de.isolveproblems.freeframe.api.PurchaseProfile;
 import de.isolveproblems.freeframe.api.PurchaseRequest;
 import de.isolveproblems.freeframe.api.PurchaseResult;
 import de.isolveproblems.freeframe.api.SaleMode;
+import de.isolveproblems.freeframe.api.BuyerRiskProfile;
+import de.isolveproblems.freeframe.api.CampaignEffect;
 import de.isolveproblems.freeframe.economy.EconomyChargeResult;
 import de.isolveproblems.freeframe.inventory.FreeFrameInventoryHolder;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
@@ -104,6 +106,20 @@ public class FrameInventoryListener implements Listener {
             ));
             return;
         }
+        if (this.freeframe.getModerationService().isFrameFrozen(frameData.getId())) {
+            player.sendMessage(this.freeframe.formatMessage(
+                "%prefix% &cThis shop is frozen: &e" + this.freeframe.getModerationService().frameRestrictionReason(frameData.getId()),
+                player
+            ));
+            return;
+        }
+        if (this.freeframe.getModerationService().isPlayerRestricted(player.getUniqueId().toString())) {
+            player.sendMessage(this.freeframe.formatMessage(
+                "%prefix% &cYour shop actions are restricted: &e" + this.freeframe.getModerationService().playerRestrictionReason(player.getUniqueId().toString()),
+                player
+            ));
+            return;
+        }
 
         boolean autoRefilled = frameData.applyAutoRefillIfDue(System.currentTimeMillis());
         PurchaseProfile profile = this.resolveProfile(frameData, rawSlot, holder);
@@ -176,6 +192,7 @@ public class FrameInventoryListener implements Listener {
             if (result.getStatus() == PurchaseResult.Status.BLOCKED || result.getStatus() == PurchaseResult.Status.ERROR) {
                 player.sendMessage(this.freeframe.getMessage(result.getMessagePath(), result.getFallbackMessage(), player));
                 this.freeframe.getAlertService().alertPurchaseFailure(frameData.getId(), result.getStatus().name());
+                this.freeframe.getBuyerReputationService().recordPurchaseFailure(player, frameData, result.getStatus().name().toLowerCase(Locale.ENGLISH));
                 return;
             }
 
@@ -187,14 +204,28 @@ public class FrameInventoryListener implements Listener {
             int amount = Math.max(1, result.getPurchasedAmount());
             double grossPrice = Math.max(0.0D, result.getFinalPrice());
             String currency = this.resolveCurrency(frameData.getCurrency(), holder.getCurrency());
+            BuyerRiskProfile risk = this.freeframe.getBuyerReputationService().evaluate(player, frameData, grossPrice);
+            if (risk.isBlocked()) {
+                this.freeframe.getMetricsTracker().incrementReputationBlocks();
+                this.freeframe.getAlertService().alertPurchaseFailure(frameData.getId(), "risk-block");
+                this.freeframe.getBuyerReputationService().recordPurchaseFailure(player, frameData, "risk-block");
+                player.sendMessage(this.freeframe.getMessage(
+                    "freeframe.reputation.blocked",
+                    "%prefix% &cPurchase blocked by fraud protection.",
+                    player
+                ));
+                return;
+            }
 
             SignedPurchaseToken token = this.freeframe.getPurchaseSecurityService().createToken(player, frameData, profile, grossPrice);
             if (!this.freeframe.getPurchaseSecurityService().verify(token)) {
                 this.freeframe.getAlertService().alertPurchaseFailure(frameData.getId(), "invalid-signature");
+                this.freeframe.getBuyerReputationService().recordPurchaseFailure(player, frameData, "invalid-signature");
                 player.sendMessage(this.freeframe.getMessage("freeframe.security.invalid", "%prefix% &cTransaction signature invalid.", player));
                 return;
             }
             if (this.freeframe.getPurchaseSecurityService().isCommitted(token.getTxId())) {
+                this.freeframe.getBuyerReputationService().recordPurchaseFailure(player, frameData, "duplicate");
                 player.sendMessage(this.freeframe.getMessage("freeframe.security.duplicate", "%prefix% &eDuplicate purchase blocked.", player));
                 return;
             }
@@ -204,12 +235,16 @@ public class FrameInventoryListener implements Listener {
                 return;
             }
 
-            Double seasonalTaxOverride = this.freeframe.getSeasonalRulesService().resolveTaxOverridePercent(frameData, System.currentTimeMillis());
-            TaxBreakdown breakdown = this.freeframe.getTaxService().calculate(frameData, grossPrice, seasonalTaxOverride);
+            long now = System.currentTimeMillis();
+            CampaignEffect campaignEffect = this.freeframe.getCampaignRuntimeService().resolve(frameData, now);
+            Double seasonalTaxOverride = this.freeframe.getSeasonalRulesService().resolveTaxOverridePercent(frameData, now);
+            Double taxOverride = campaignEffect.getTaxOverridePercent() != null ? campaignEffect.getTaxOverridePercent() : seasonalTaxOverride;
+            TaxBreakdown breakdown = this.freeframe.getTaxService().calculate(frameData, grossPrice, taxOverride);
             boolean consumed = this.freeframe.getShopNetworkService().consumeStock(frameData, amount);
             if (!consumed) {
                 this.freeframe.getMetricsTracker().incrementStockOutHits();
                 this.freeframe.getAlertService().alertPurchaseFailure(frameData.getId(), "network-stock-race");
+                this.freeframe.getBuyerReputationService().recordPurchaseFailure(player, frameData, "network-stock-race");
                 player.sendMessage(this.freeframe.getMessage(
                     "freeframe.purchase.stockOut",
                     "%prefix% &cThis frame is out of stock.",
@@ -224,6 +259,7 @@ public class FrameInventoryListener implements Listener {
                 this.freeframe.getTransactionJournalService().logPurchaseCommit(
                     token.getTxId(), player, frameData, amount, breakdown.getGross(), breakdown.getTax(), breakdown.getNet(), "charge_failed", token.getSignature()
                 );
+                this.freeframe.getBuyerReputationService().recordPurchaseFailure(player, frameData, "charge-failed");
                 return;
             }
 
@@ -241,6 +277,7 @@ public class FrameInventoryListener implements Listener {
             this.freeframe.getStatisticsService().recordPurchase(player, frameData, amount, breakdown.getGross());
             this.freeframe.getDynamicPricingService().recordPurchase(frameData, System.currentTimeMillis());
             this.freeframe.getPurchaseSecurityService().markCommitted(token.getTxId());
+            this.freeframe.getBuyerReputationService().recordPurchaseSuccess(player, frameData, breakdown.getGross());
             this.freeframe.getTransactionJournalService().logPurchaseCommit(
                 token.getTxId(), player, frameData, amount, breakdown.getGross(), breakdown.getTax(), breakdown.getNet(), "success", token.getSignature()
             );
@@ -249,6 +286,7 @@ public class FrameInventoryListener implements Listener {
             this.freeframe.getAuditLogger().logPurchase(player, frameData, amount, breakdown.getGross(), breakdown.getGross() > 0.0D ? "charged" : "free");
             this.freeframe.getDisplayService().refresh(frameData);
             this.freeframe.getFrameRegistry().saveToConfig();
+            this.freeframe.getNetworkSyncService().publishFrameUpdate(frameData, "purchase");
             this.freeframe.getAlertService().alertLowStock(frameData);
 
             if (this.freeframe.getPluginConfig().getBoolean("freeframe.gui.closeAfterPurchase", false)) {

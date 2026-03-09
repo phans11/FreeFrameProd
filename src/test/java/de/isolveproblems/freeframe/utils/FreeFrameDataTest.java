@@ -45,6 +45,8 @@ class FreeFrameDataTest {
             ShopOwnerType.ADMIN,
             "market-a",
             "spring",
+            "premium",
+            "spring-sale",
             SaleMode.AUCTION,
             123456999L,
             5.0D,
@@ -81,6 +83,8 @@ class FreeFrameDataTest {
         assertEquals(ShopOwnerType.ADMIN, restored.getShopOwnerType());
         assertEquals("market-a", restored.getNetworkId());
         assertEquals("spring", restored.getSeasonRuleId());
+        assertEquals("premium", restored.getBrandingId());
+        assertEquals("spring-sale", restored.getCampaignId());
         assertEquals(SaleMode.AUCTION, restored.getSaleMode());
         assertEquals(25.0D, restored.getHighestBid());
         assertEquals("Bidder", restored.getHighestBidderName());

@@ -354,6 +354,8 @@ public class FrameRegistry {
             ownerType,
             "",
             "",
+            this.freeframe.getPluginConfig().getString("freeframe.branding.defaultTheme", "classic"),
+            this.freeframe.getPluginConfig().getString("freeframe.campaigns.defaultRule", ""),
             SaleMode.fromString(this.freeframe.getPluginConfig().getString("freeframe.saleMode.default", "INSTANT")),
             0L,
             0.0D,
@@ -444,6 +446,16 @@ public class FrameRegistry {
 
         if (data.getSeasonRuleId() == null) {
             data.setSeasonRuleId("");
+            changed = true;
+        }
+
+        if (data.getBrandingId() == null) {
+            data.setBrandingId("");
+            changed = true;
+        }
+
+        if (data.getCampaignId() == null) {
+            data.setCampaignId("");
             changed = true;
         }
 

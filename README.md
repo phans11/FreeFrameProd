@@ -5,6 +5,8 @@ Spigot-Plugin fuer ItemFrame-Shops mit Free- und Preis-Mode.
 ## Kompatibilitaet
 - Minecraft/Spigot `1.8.8` bis `1.21.11`
 - Java 8 Build-Target
+- Runtime-Erkennung fuer `Paper`, `Spigot/CraftBukkit` und `Cauldron`-Forks
+- Proxy-Sync-Modi fuer `BungeeCord` und `Velocity` (optional ueber Config)
 
 ## Umgesetzte Features
 1. Buy-Limits pro Spieler/Zeitfenster
@@ -39,6 +41,15 @@ Spigot-Plugin fuer ItemFrame-Shops mit Free- und Preis-Mode.
 30. Exploit-Hardening (signierte IDs, Idempotency, Race-Schutz)
 31. Admin-Shop vs User-Shop Trennung mit Offer-Filter `admin|user|both`
 32. Owner-Management fuer eigene Shops
+33. Smart-Restock-Routen (Linked, Nearby, Netzwerk) mit Preview
+34. Buyer Reputation/Fraud Score mit Block-Threshold und manueller Steuerung
+35. Ingame Analytics UI (`global`, `frame`, `player`)
+36. Visual Shop Branding mit Theme-Templates pro Shop
+37. Campaign Engine mit Zeitfenster, Preis-Multiplikator und Tax-Override
+38. Cross-Server Sync-Bridge (`none|bungee|velocity|file|hybrid`)
+39. Webhooks 2.0: Queue, Retry, Schema-Version, HMAC-Signaturen
+40. Compliance/Moderation Toolkit (Frame-Freeze, Player-Restrict, Log)
+41. Zero-Downtime Migration Tools (`zdm plan/apply`)
 
 ## Commands
 - `/freeframe help`
@@ -60,6 +71,15 @@ Spigot-Plugin fuer ItemFrame-Shops mit Free- und Preis-Mode.
 - `/freeframe season <set|clear|info> ...`
 - `/freeframe auction <start|stop|info> ...`
 - `/freeframe stats <frame|player> <target>`
+- `/freeframe analytics <global|frame|player> ...`
+- `/freeframe restockroute <id>`
+- `/freeframe brand <set|clear|info> ...`
+- `/freeframe campaign <set|clear|info> ...`
+- `/freeframe sync <status|push> ...`
+- `/freeframe platform`
+- `/freeframe trust <info|set|clear> ...`
+- `/freeframe moderate <frame|player|log> ...`
+- `/freeframe zdm <plan|apply>`
 - `/freeframe backup`
 - `/freeframe restore <file>`
 - `/freeframe doctor`
@@ -106,6 +126,13 @@ mvn clean verify -P release
 - Economy: `freeframe.economy.*` (Owner-Payout, Verhalten ohne Vault)
 - Logging/Export: `freeframe.logging.*` (Aktivierung, Unterordner, Dateiname)
 - Webhooks: `freeframe.webhooks.*` (Discord/Webhook Ziel)
+- Reputation/Fraud: `freeframe.reputation.*`
+- Branding: `freeframe.branding.*`
+- Campaigns: `freeframe.campaigns.*`
+- Moderation: `freeframe.moderation.*`
+- Proxy/Network Sync: `freeframe.proxy.*`, `freeframe.networkSync.*`
+- Analytics UI: `freeframe.analytics.*`
+- Zero-Downtime Migration: `freeframe.migration.zeroDowntime.*`
 - Alerts: `freeframe.alerts.*` (Cooldown, Schwellen)
 - Limits/Stock: `freeframe.limits.*`, `freeframe.stock.*`
 - Kaufprofile/Typen: `freeframe.profiles.*`, `freeframe.types.*`

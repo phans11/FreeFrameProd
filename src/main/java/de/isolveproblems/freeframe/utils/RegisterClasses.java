@@ -2,6 +2,7 @@ package de.isolveproblems.freeframe.utils;
 
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.commands.FreeFrameCommand;
+import de.isolveproblems.freeframe.listener.AnalyticsInventoryListener;
 import de.isolveproblems.freeframe.listener.CreateFrameListener;
 import de.isolveproblems.freeframe.listener.DestroyFrameListener;
 import de.isolveproblems.freeframe.listener.FrameBreakCleanupListener;
@@ -38,5 +39,6 @@ public class RegisterClasses {
         pluginManager.registerEvents(new FrameInventoryListener(this.freeframe), this.freeframe);
         pluginManager.registerEvents(new SetupWandListener(this.freeframe), this.freeframe);
         pluginManager.registerEvents(new SetupEditorListener(this.freeframe), this.freeframe);
+        pluginManager.registerEvents(new AnalyticsInventoryListener(), this.freeframe);
     }
 }

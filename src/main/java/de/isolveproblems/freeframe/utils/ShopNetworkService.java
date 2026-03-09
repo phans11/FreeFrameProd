@@ -38,7 +38,11 @@ public class ShopNetworkService {
         int requested = Math.max(1, amount);
         String networkId = source.getNetworkId();
         if (networkId == null || networkId.trim().isEmpty()) {
-            return source.consumeStock(requested);
+            boolean consumed = source.consumeStock(requested);
+            if (consumed) {
+                this.freeframe.getNetworkSyncService().publishFrameUpdate(source, "network-consume");
+            }
+            return consumed;
         }
 
         if (this.getAvailableStock(source) < requested) {
@@ -58,6 +62,7 @@ public class ShopNetworkService {
             }
             int consume = Math.min(available, remaining);
             member.setStock(available - consume);
+            this.freeframe.getNetworkSyncService().publishFrameUpdate(member, "network-consume");
             remaining -= consume;
         }
         return remaining <= 0;
@@ -70,11 +75,13 @@ public class ShopNetworkService {
         String networkId = source.getNetworkId();
         if (networkId == null || networkId.trim().isEmpty()) {
             source.setStock(source.getStock() + amount);
+            this.freeframe.getNetworkSyncService().publishFrameUpdate(source, "network-restore");
             return;
         }
 
         // Conservative rollback: return stock to the clicked frame to avoid over-distribution.
         source.setStock(source.getStock() + amount);
+        this.freeframe.getNetworkSyncService().publishFrameUpdate(source, "network-restore");
     }
 
     public int sizeOfNetwork(String networkId) {
@@ -100,6 +107,9 @@ public class ShopNetworkService {
         }
         if (changed > 0) {
             this.freeframe.getFrameRegistry().saveToConfig();
+            for (FreeFrameData member : members) {
+                this.freeframe.getNetworkSyncService().publishFrameUpdate(member, "network-price");
+            }
         }
         return changed;
     }

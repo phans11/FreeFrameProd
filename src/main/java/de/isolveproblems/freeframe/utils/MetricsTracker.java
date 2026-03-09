@@ -16,6 +16,9 @@ public class MetricsTracker {
     private final AtomicLong migrations = new AtomicLong();
     private final AtomicLong repairs = new AtomicLong();
     private final AtomicLong adminRemovals = new AtomicLong();
+    private final AtomicLong reputationBlocks = new AtomicLong();
+    private final AtomicLong moderationActions = new AtomicLong();
+    private final AtomicLong syncPublishes = new AtomicLong();
 
     public void incrementFramesCreated() {
         this.framesCreated.incrementAndGet();
@@ -61,6 +64,18 @@ public class MetricsTracker {
         this.adminRemovals.incrementAndGet();
     }
 
+    public void incrementReputationBlocks() {
+        this.reputationBlocks.incrementAndGet();
+    }
+
+    public void incrementModerationActions() {
+        this.moderationActions.incrementAndGet();
+    }
+
+    public void incrementSyncPublishes() {
+        this.syncPublishes.incrementAndGet();
+    }
+
     public Map<String, Long> snapshot() {
         Map<String, Long> values = new LinkedHashMap<String, Long>();
         values.put("framesCreated", this.framesCreated.get());
@@ -74,6 +89,9 @@ public class MetricsTracker {
         values.put("migrations", this.migrations.get());
         values.put("repairs", this.repairs.get());
         values.put("adminRemovals", this.adminRemovals.get());
+        values.put("reputationBlocks", this.reputationBlocks.get());
+        values.put("moderationActions", this.moderationActions.get());
+        values.put("syncPublishes", this.syncPublishes.get());
         return values;
     }
 }

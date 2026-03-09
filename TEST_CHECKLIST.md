@@ -6,13 +6,13 @@ Validierung des Plugins auf Spigot `1.8.8` und `1.21.11`.
 ## Voraussetzungen
 - Server A: Spigot `1.8.8`
 - Server B: Spigot `1.21.11`
-- Plugin-JAR: `target/FreeFrame-1.8.0.jar`
+- Plugin-JAR: `target/FreeFrame-1.9.0.jar`
 - Testspieler: `Admin` (OP), `User`
 - Optional: Vault + Economy Plugin, PlaceholderAPI, WorldGuard, GriefPrevention
 
 ## Installation
 1. Server stoppen.
-2. `FreeFrame-1.8.0.jar` nach `plugins/` kopieren.
+2. `FreeFrame-1.9.0.jar` nach `plugins/` kopieren.
 3. Server starten.
 4. Im Log `Status: Enabled` pruefen.
 5. `plugins/FreeFrame/config.yml` pruefen.
@@ -20,7 +20,7 @@ Validierung des Plugins auf Spigot `1.8.8` und `1.21.11`.
 ## Funktionstests
 1. Basis
 - `/freeframe help` zeigt alle Subcommands.
-- `/freeframe info` zeigt Version `1.8.0`.
+- `/freeframe info` zeigt Version `1.9.0`.
 
 2. Buy-Limits
 - `freeframe.limits.enabled: true`
@@ -120,6 +120,46 @@ Validierung des Plugins auf Spigot `1.8.8` und `1.21.11`.
 
 24. PlaceholderAPI
 - Bei installiertem PlaceholderAPI: Placeholder in Messages/Display werden ersetzt.
+
+25. Smart Restock Routes
+- `/freeframe restockroute <id>` pruefen.
+- Route zeigt Linked/Nearby/Network-Knoten mit verfuegbarem Stock.
+
+26. Buyer Reputation/Fraud
+- `freeframe.reputation.enabled: true`.
+- Hohe manuelle Risk-Werte via `/freeframe trust set <player> 999` testen.
+- Kauf wird blockiert, `/freeframe trust info <player>` zeigt Block-Status.
+
+27. Ingame Analytics UI
+- `/freeframe analytics global`, `/freeframe analytics frame <id>`, `/freeframe analytics player <name>`.
+- Klicks in Analytics-GUI sind geblockt.
+
+28. Visual Branding + Campaign
+- `/freeframe brand set <id> <theme>` und `/freeframe campaign set <id> <rule>`.
+- Display-Template am ArmorStand aktualisiert sich sichtbar.
+- Campaign-Multiplikator und Tax-Override greifen waehrend aktivem Zeitfenster.
+
+29. Compliance/Moderation Toolkit
+- `/freeframe moderate frame freeze <id> <reason>` blockiert Kaeufe.
+- `/freeframe moderate player restrict <player> <reason>` blockiert Kaeufe fuer Spieler.
+- `/freeframe moderate log 10` zeigt Aktionen.
+
+30. Cross-Server Sync + Proxy Support
+- `freeframe.networkSync.enabled: true`, Mode `bungee|velocity|file|hybrid` testen.
+- `/freeframe sync status` und `/freeframe sync push <id|all>`.
+- Bei File-/Hybrid-Mode: Event-Datei unter `plugins/FreeFrame/network-sync/events.log`.
+
+31. Platform Detection
+- `/freeframe platform` zeigt Runtime (`paper`, `spigot`, `cauldron`, ...).
+
+32. Webhooks 2.0
+- `freeframe.webhooks.endpoints` setzen, `schemaVersion` und `secret` setzen.
+- Header `X-FreeFrame-Schema`, `X-FreeFrame-Event`, `X-FreeFrame-Signature` pruefen.
+- Retry-Verhalten ueber `maxRetries` und `retryDelayMillis` validieren.
+
+33. Zero-Downtime Migration
+- `/freeframe zdm plan` und `/freeframe zdm apply` pruefen.
+- Nach `apply` sind Branding/Campaign-Felder in Daten gesetzt.
 
 ## Regression
 - Destroy-Schutz bleibt aktiv (Permission/Creative/Sneak).

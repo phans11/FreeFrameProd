@@ -34,6 +34,8 @@ public class FreeFrameData {
     private ShopOwnerType shopOwnerType;
     private String networkId;
     private String seasonRuleId;
+    private String brandingId;
+    private String campaignId;
     private SaleMode saleMode;
     private long auctionEndAt;
     private double auctionMinBid;
@@ -46,7 +48,7 @@ public class FreeFrameData {
                          String itemType, double price, String currency, boolean active) {
         this(id, reference, ownerUuid, ownerName, createdAt, itemType, price, currency, active,
             64, 64, false, 300_000L, System.currentTimeMillis(), 0.0D, "", FrameType.SHOP, null,
-            new ArrayList<PurchaseProfile>(), ShopOwnerType.USER, "", "", SaleMode.INSTANT,
+            new ArrayList<PurchaseProfile>(), ShopOwnerType.USER, "", "", "", "", SaleMode.INSTANT,
             0L, 0.0D, 0.0D, "", "", 0.0D);
     }
 
@@ -55,7 +57,8 @@ public class FreeFrameData {
                          int stock, int maxStock, boolean autoRefill, long refillIntervalMillis,
                          long lastRefillAt, double revenueTotal, String displayEntityUuid,
                          FrameType frameType, BlockReference linkedChest, List<PurchaseProfile> purchaseProfiles,
-                         ShopOwnerType shopOwnerType, String networkId, String seasonRuleId, SaleMode saleMode,
+                         ShopOwnerType shopOwnerType, String networkId, String seasonRuleId, String brandingId,
+                         String campaignId, SaleMode saleMode,
                          long auctionEndAt, double auctionMinBid, double highestBid, String highestBidderUuid,
                          String highestBidderName, double collectedTaxTotal) {
         this.id = id;
@@ -81,6 +84,8 @@ public class FreeFrameData {
         this.shopOwnerType = shopOwnerType == null ? ShopOwnerType.USER : shopOwnerType;
         this.networkId = networkId == null ? "" : networkId.trim().toLowerCase(java.util.Locale.ENGLISH);
         this.seasonRuleId = seasonRuleId == null ? "" : seasonRuleId.trim().toLowerCase(java.util.Locale.ENGLISH);
+        this.brandingId = brandingId == null ? "" : brandingId.trim().toLowerCase(java.util.Locale.ENGLISH);
+        this.campaignId = campaignId == null ? "" : campaignId.trim().toLowerCase(java.util.Locale.ENGLISH);
         this.saleMode = saleMode == null ? SaleMode.INSTANT : saleMode;
         this.auctionEndAt = Math.max(0L, auctionEndAt);
         this.auctionMinBid = Math.max(0.0D, auctionMinBid);
@@ -130,6 +135,8 @@ public class FreeFrameData {
             ShopOwnerType.fromString(section.getString("shopOwnerType", "USER")),
             section.getString("networkId", ""),
             section.getString("seasonRuleId", ""),
+            section.getString("brandingId", ""),
+            section.getString("campaignId", ""),
             SaleMode.fromString(section.getString("saleMode", "INSTANT")),
             section.getLong("auction.endAt", 0L),
             Math.max(0.0D, section.getDouble("auction.minBid", 0.0D)),
@@ -161,6 +168,8 @@ public class FreeFrameData {
         section.set("shopOwnerType", this.shopOwnerType.name());
         section.set("networkId", this.networkId);
         section.set("seasonRuleId", this.seasonRuleId);
+        section.set("brandingId", this.brandingId);
+        section.set("campaignId", this.campaignId);
         section.set("saleMode", this.saleMode.name());
         section.set("auction.endAt", this.auctionEndAt);
         section.set("auction.minBid", this.auctionMinBid);
@@ -215,6 +224,8 @@ public class FreeFrameData {
             this.shopOwnerType,
             this.networkId,
             this.seasonRuleId,
+            this.brandingId,
+            this.campaignId,
             this.saleMode,
             this.auctionEndAt,
             this.auctionMinBid,
@@ -479,6 +490,22 @@ public class FreeFrameData {
 
     public void setSeasonRuleId(String seasonRuleId) {
         this.seasonRuleId = seasonRuleId == null ? "" : seasonRuleId.trim().toLowerCase(java.util.Locale.ENGLISH);
+    }
+
+    public String getBrandingId() {
+        return this.brandingId;
+    }
+
+    public void setBrandingId(String brandingId) {
+        this.brandingId = brandingId == null ? "" : brandingId.trim().toLowerCase(java.util.Locale.ENGLISH);
+    }
+
+    public String getCampaignId() {
+        return this.campaignId;
+    }
+
+    public void setCampaignId(String campaignId) {
+        this.campaignId = campaignId == null ? "" : campaignId.trim().toLowerCase(java.util.Locale.ENGLISH);
     }
 
     public SaleMode getSaleMode() {

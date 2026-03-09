@@ -142,21 +142,33 @@ public class FrameDisplayService {
     }
 
     private String buildDisplayName(FreeFrameData frameData) {
-        String template = this.freeframe.getPluginConfig().getString(
-            "freeframe.display.template",
-            "&e%item% &7| &6%currency%%price% &7| &bStock: %stock%"
+        long now = System.currentTimeMillis();
+        double projectedPrice = frameData.getPrice();
+        projectedPrice = this.freeframe.getSeasonalRulesService().applyPriceMultiplier(frameData, projectedPrice, now);
+        projectedPrice = this.freeframe.getDynamicPricingService().apply(
+            frameData,
+            projectedPrice,
+            Math.max(0, frameData.getStock()),
+            Math.max(1, frameData.getMaxStock()),
+            now
         );
+        projectedPrice = this.freeframe.getCampaignRuntimeService().applyPrice(frameData, projectedPrice, now);
 
-        if (template == null) {
+        String forcedTheme = this.freeframe.getCampaignRuntimeService().resolve(frameData, now).getBrandingOverrideId();
+        String template = this.freeframe.getBrandingService().resolveDisplayTemplate(frameData, forcedTheme);
+        if (template == null || template.trim().isEmpty()) {
             template = "&e%item% &7| &6%currency%%price% &7| &bStock: %stock%";
         }
 
         String replaced = template
             .replace("%item%", frameData.getItemType())
             .replace("%currency%", frameData.getCurrency())
-            .replace("%price%", String.format(Locale.ENGLISH, "%.2f", frameData.getPrice()))
+            .replace("%price%", String.format(Locale.ENGLISH, "%.2f", projectedPrice))
             .replace("%stock%", String.valueOf(frameData.getStock()))
-            .replace("%owner%", frameData.getOwnerName());
+            .replace("%owner%", frameData.getOwnerName())
+            .replace("%network%", frameData.getNetworkId())
+            .replace("%campaign%", frameData.getCampaignId())
+            .replace("%brand%", frameData.getBrandingId());
 
         return this.freeframe.colorize(this.freeframe.getPlaceholderSupport().apply(null, replaced));
     }

@@ -1,24 +1,36 @@
 package de.isolveproblems.freeframe;
 
 import de.isolveproblems.freeframe.api.BackupService;
+import de.isolveproblems.freeframe.api.BuyerReputationService;
+import de.isolveproblems.freeframe.api.BrandingService;
+import de.isolveproblems.freeframe.api.CampaignRuntimeService;
 import de.isolveproblems.freeframe.api.ChestRestockService;
 import de.isolveproblems.freeframe.api.DiscountService;
 import de.isolveproblems.freeframe.api.LocalizationService;
+import de.isolveproblems.freeframe.api.ModerationService;
+import de.isolveproblems.freeframe.api.NetworkSyncService;
 import de.isolveproblems.freeframe.api.OfferMode;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
 import de.isolveproblems.freeframe.api.PurchaseProcessor;
 import de.isolveproblems.freeframe.api.RegionAccessService;
+import de.isolveproblems.freeframe.api.RestockRoutingService;
 import de.isolveproblems.freeframe.api.StatisticsService;
 import de.isolveproblems.freeframe.api.TransactionGuard;
 import de.isolveproblems.freeframe.api.WebhookExportService;
+import de.isolveproblems.freeframe.api.ZeroDowntimeMigrationService;
 import de.isolveproblems.freeframe.economy.VaultEconomyService;
 import de.isolveproblems.freeframe.utils.AlertService;
+import de.isolveproblems.freeframe.utils.AnalyticsUiService;
 import de.isolveproblems.freeframe.utils.AuctionService;
 import de.isolveproblems.freeframe.utils.AmountValidator;
 import de.isolveproblems.freeframe.utils.AuditLogger;
+import de.isolveproblems.freeframe.utils.BuyerReputationManager;
+import de.isolveproblems.freeframe.utils.CampaignEngineService;
 import de.isolveproblems.freeframe.utils.ChestInventoryRestockService;
+import de.isolveproblems.freeframe.utils.ComplianceModerationService;
 import de.isolveproblems.freeframe.utils.CompositeRegionAccessService;
 import de.isolveproblems.freeframe.utils.ConfigurationMessages;
+import de.isolveproblems.freeframe.utils.CrossServerSyncBridge;
 import de.isolveproblems.freeframe.utils.DashboardServer;
 import de.isolveproblems.freeframe.utils.DefaultDiscountService;
 import de.isolveproblems.freeframe.utils.DefaultPurchaseProcessor;
@@ -34,16 +46,19 @@ import de.isolveproblems.freeframe.utils.LocalBackupService;
 import de.isolveproblems.freeframe.utils.LocalStatisticsService;
 import de.isolveproblems.freeframe.utils.MetricsTracker;
 import de.isolveproblems.freeframe.utils.PlaceholderSupport;
+import de.isolveproblems.freeframe.utils.PlatformSupportService;
 import de.isolveproblems.freeframe.utils.PurchaseSecurityService;
 import de.isolveproblems.freeframe.utils.PurchaseWindowLimiter;
 import de.isolveproblems.freeframe.utils.RegionRestrictionService;
 import de.isolveproblems.freeframe.utils.RegisterClasses;
 import de.isolveproblems.freeframe.utils.SeasonalRulesService;
 import de.isolveproblems.freeframe.utils.ShopNetworkService;
+import de.isolveproblems.freeframe.utils.TemplateBrandingService;
 import de.isolveproblems.freeframe.utils.TaxService;
 import de.isolveproblems.freeframe.utils.TransactionJournalService;
 import de.isolveproblems.freeframe.utils.WebhookNotifier;
 import de.isolveproblems.freeframe.utils.YamlLocalizationService;
+import de.isolveproblems.freeframe.utils.ZeroDowntimeMigrationManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -77,6 +92,7 @@ public class FreeFrame extends JavaPlugin {
     private LocalizationService localizationService;
     private DiscountService discountService;
     private ChestRestockService chestRestockService;
+    private RestockRoutingService restockRoutingService;
     private StatisticsService statisticsService;
     private BackupService backupService;
     private RegionAccessService regionAccessService;
@@ -92,6 +108,14 @@ public class FreeFrame extends JavaPlugin {
     private AlertService alertService;
     private DashboardServer dashboardServer;
     private AuctionService auctionService;
+    private BuyerReputationService buyerReputationService;
+    private CampaignRuntimeService campaignRuntimeService;
+    private BrandingService brandingService;
+    private ModerationService moderationService;
+    private PlatformSupportService platformSupportService;
+    private NetworkSyncService networkSyncService;
+    private ZeroDowntimeMigrationService zeroDowntimeMigrationService;
+    private AnalyticsUiService analyticsUiService;
 
     @Override
     public void onEnable() {
@@ -108,6 +132,9 @@ public class FreeFrame extends JavaPlugin {
         }
         if (this.auctionService != null) {
             this.auctionService.stop();
+        }
+        if (this.networkSyncService != null) {
+            this.networkSyncService.stop();
         }
 
         if (this.statisticsService != null) {
@@ -144,7 +171,10 @@ public class FreeFrame extends JavaPlugin {
         this.displayService = new FrameDisplayService(this);
         this.localizationService = new YamlLocalizationService(this);
         this.discountService = new DefaultDiscountService(this);
-        this.chestRestockService = new ChestInventoryRestockService();
+        this.chestRestockService = new ChestInventoryRestockService(this);
+        this.restockRoutingService = this.chestRestockService instanceof RestockRoutingService
+            ? (RestockRoutingService) this.chestRestockService
+            : null;
         this.statisticsService = new LocalStatisticsService(this.getDataFolder());
         this.backupService = new LocalBackupService(this);
         this.transactionGuard = new InMemoryTransactionGuard();
@@ -159,6 +189,14 @@ public class FreeFrame extends JavaPlugin {
         this.alertService = new AlertService(this);
         this.dashboardServer = new DashboardServer(this);
         this.auctionService = new AuctionService(this);
+        this.buyerReputationService = new BuyerReputationManager(this);
+        this.campaignRuntimeService = new CampaignEngineService(this);
+        this.brandingService = new TemplateBrandingService(this);
+        this.moderationService = new ComplianceModerationService(this);
+        this.platformSupportService = new PlatformSupportService(this);
+        this.networkSyncService = new CrossServerSyncBridge(this);
+        this.zeroDowntimeMigrationService = new ZeroDowntimeMigrationManager(this);
+        this.analyticsUiService = new AnalyticsUiService(this);
         this.purchaseProcessor = new DefaultPurchaseProcessor(
             this,
             this.discountService,
@@ -183,8 +221,10 @@ public class FreeFrame extends JavaPlugin {
         this.initializeOptionalBStats();
         this.dashboardServer.start();
         this.auctionService.start();
+        this.networkSyncService.start();
         this.registrar.registerCommands();
         this.registrar.registerListeners();
+        this.getLogger().info("Runtime platform detected: " + this.platformSupportService.detectRuntime());
     }
 
     public void reloadRuntimeState() {
@@ -192,7 +232,10 @@ public class FreeFrame extends JavaPlugin {
         this.placeholderSupport = new PlaceholderSupport(this);
         this.localizationService = new YamlLocalizationService(this);
         this.discountService = new DefaultDiscountService(this);
-        this.chestRestockService = new ChestInventoryRestockService();
+        this.chestRestockService = new ChestInventoryRestockService(this);
+        this.restockRoutingService = this.chestRestockService instanceof RestockRoutingService
+            ? (RestockRoutingService) this.chestRestockService
+            : null;
         this.economyService.initialize();
         this.regionAccessService = new CompositeRegionAccessService(this, this.regionRestrictionService);
         this.webhookExportService = new WebhookNotifier(this);
@@ -203,6 +246,18 @@ public class FreeFrame extends JavaPlugin {
         this.purchaseSecurityService = new PurchaseSecurityService(this);
         this.transactionJournalService = new TransactionJournalService(this);
         this.alertService = new AlertService(this);
+        this.buyerReputationService = new BuyerReputationManager(this);
+        this.campaignRuntimeService = new CampaignEngineService(this);
+        this.brandingService = new TemplateBrandingService(this);
+        this.moderationService = new ComplianceModerationService(this);
+        this.platformSupportService = new PlatformSupportService(this);
+        this.zeroDowntimeMigrationService = new ZeroDowntimeMigrationManager(this);
+        this.analyticsUiService = new AnalyticsUiService(this);
+        if (this.networkSyncService == null) {
+            this.networkSyncService = new CrossServerSyncBridge(this);
+        }
+        this.networkSyncService.stop();
+        this.networkSyncService.start();
         if (this.dashboardServer == null) {
             this.dashboardServer = new DashboardServer(this);
         }
@@ -304,6 +359,10 @@ public class FreeFrame extends JavaPlugin {
         return this.chestRestockService;
     }
 
+    public RestockRoutingService getRestockRoutingService() {
+        return this.restockRoutingService;
+    }
+
     public StatisticsService getStatisticsService() {
         return this.statisticsService;
     }
@@ -362,6 +421,38 @@ public class FreeFrame extends JavaPlugin {
 
     public AuctionService getAuctionService() {
         return this.auctionService;
+    }
+
+    public BuyerReputationService getBuyerReputationService() {
+        return this.buyerReputationService;
+    }
+
+    public CampaignRuntimeService getCampaignRuntimeService() {
+        return this.campaignRuntimeService;
+    }
+
+    public BrandingService getBrandingService() {
+        return this.brandingService;
+    }
+
+    public ModerationService getModerationService() {
+        return this.moderationService;
+    }
+
+    public PlatformSupportService getPlatformSupportService() {
+        return this.platformSupportService;
+    }
+
+    public NetworkSyncService getNetworkSyncService() {
+        return this.networkSyncService;
+    }
+
+    public ZeroDowntimeMigrationService getZeroDowntimeMigrationService() {
+        return this.zeroDowntimeMigrationService;
+    }
+
+    public AnalyticsUiService getAnalyticsUiService() {
+        return this.analyticsUiService;
     }
 
     public JournalReplayReport replayTransactionJournal(boolean dryRun) {
