@@ -2,11 +2,10 @@ package de.isolveproblems.freeframe.utils;
 
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.ConfigAPI;
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class ConfigurationMessages {
@@ -25,280 +24,8 @@ public class ConfigurationMessages {
 
     public void load() {
         FileConfiguration config = this.configApi.getConfig();
-
-        config.addDefault("freeframe.prefix", "&eFreeFrame &8>>");
-
-        config.addDefault("freeframe.reload.permission", "freeframe.reload");
-        config.addDefault("freeframe.reload.message", "%prefix% &aFreeFrame successfully reloaded all configs.");
-
-        config.addDefault("freeframe.admin.permission", "freeframe.admin");
-        config.addDefault("freeframe.admin.listPageSize", 8);
-
-        config.addDefault("freeframe.error.permission", "%prefix% &cYou don't have enough permissions to perform this command.");
-        config.addDefault("freeframe.error.unknownFrame", "%prefix% &cNo FreeFrame found for id &e%id%&c.");
-
-        config.addDefault("freeframe.destroy.permission", "freeframe.destroy");
-        config.addDefault("freeframe.destroy.message", "%prefix% &eYou've destroyed the &6FreeFrame &esuccessfully.");
-        config.addDefault("freeframe.destroy.haveToSneak", "%prefix% &cYou have to sneak if you want to destroy this FreeFrame.");
-        config.addDefault("freeframe.destroy.gamemode", "%prefix% &cYou have to be in creative mode to destroy this FreeFrame.");
-
-        config.addDefault("freeframe.item.amount", 1);
-        config.addDefault("freeframe.default.price", 0.0D);
-        config.addDefault("freeframe.default.currency", "$");
-        config.addDefault("freeframe.gui.inventory.size", 9);
-        config.addDefault("freeframe.gui.title", "%prefix%");
-        config.addDefault("freeframe.gui.saleSlots", Arrays.asList(2, 4, 6));
-        config.addDefault("freeframe.gui.closeAfterPurchase", false);
-        config.addDefault("freeframe.gui.dropOnFullInventory", true);
-        config.addDefault("freeframe.profiles.amounts", Arrays.asList(1, 16, 64));
-        config.addDefault("freeframe.profiles.priceMultipliers", Arrays.asList(1.0D, 16.0D, 64.0D));
-        config.addDefault("freeframe.types.default", "SHOP");
-        config.addDefault("freeframe.types.adminOnlyPermission", "freeframe.adminonly");
-        config.addDefault("freeframe.saleMode.default", "INSTANT");
-        config.addDefault("freeframe.shops.offerMode", "BOTH");
-        config.addDefault("freeframe.ownerManagement.enabled", true);
-        config.addDefault("freeframe.chestRestock.enabled", true);
-        config.addDefault("freeframe.chestRestock.requireLinkedChest", false);
-        config.addDefault("freeframe.chestRestock.route.scanRadius", 2);
-        config.addDefault("freeframe.chestRestock.route.networkEnabled", true);
-
-        config.addDefault("freeframe.access.requireOwner", false);
-        config.addDefault("freeframe.access.bypassPermission", "freeframe.access.bypass");
-        config.addDefault("freeframe.access.denied", "%prefix% &cYou are not allowed to use this FreeFrame.");
-        config.addDefault("freeframe.compat.armorStandAmountFix", true);
-        config.addDefault("freeframe.compat.cancelRotation", true);
-
-        config.addDefault("freeframe.cooldown.playerMillis", 300L);
-        config.addDefault("freeframe.cooldown.frameMillis", 100L);
-        config.addDefault("freeframe.cooldown.message", "%prefix% &cPlease wait before using another FreeFrame.");
-        config.addDefault("freeframe.rateLimit.message", "%prefix% &cThis FreeFrame is currently rate-limited.");
-
-        config.addDefault("freeframe.purchase.success", "%prefix% &aPurchased item for &e%currency%%price%&a.");
-        config.addDefault("freeframe.purchase.free", "%prefix% &aYou received this item for free.");
-        config.addDefault("freeframe.purchase.notEnoughMoney", "%prefix% &cNot enough money. Required: &e%currency%%price%&c.");
-        config.addDefault("freeframe.purchase.economyUnavailable", "%prefix% &cEconomy is not available right now.");
-        config.addDefault("freeframe.purchase.inventoryDrop", "%prefix% &eYour inventory was full. Remaining items were dropped.");
-        config.addDefault("freeframe.purchase.inventoryFull", "%prefix% &cYour inventory is full.");
-        config.addDefault("freeframe.purchase.stockOut", "%prefix% &cThis frame is out of stock.");
-        config.addDefault("freeframe.purchase.limited", "%prefix% &cPurchase limit reached. Try again later.");
-        config.addDefault("freeframe.purchase.busy", "%prefix% &cThis frame is processing another transaction.");
-        config.addDefault("freeframe.shops.offerFiltered", "%prefix% &cThis shop type is currently disabled.");
-        config.addDefault("freeframe.security.invalid", "%prefix% &cTransaction signature invalid.");
-        config.addDefault("freeframe.security.duplicate", "%prefix% &eDuplicate purchase blocked.");
-        config.addDefault("freeframe.reputation.enabled", true);
-        config.addDefault("freeframe.reputation.blockThreshold", 85.0D);
-        config.addDefault("freeframe.reputation.highValueThreshold", 500.0D);
-        config.addDefault("freeframe.reputation.blocked", "%prefix% &cPurchase blocked by fraud protection.");
-        config.addDefault("freeframe.reputation.weights.failure", 8.0D);
-        config.addDefault("freeframe.reputation.weights.duplicate", 5.0D);
-        config.addDefault("freeframe.reputation.weights.invalidSignature", 16.0D);
-        config.addDefault("freeframe.reputation.weights.successDecay", 0.25D);
-        config.addDefault("freeframe.reputation.weights.highValuePurchase", 4.0D);
-
-        config.addDefault("freeframe.frame.inactive", "%prefix% &cThis FreeFrame is currently inactive.");
-        config.addDefault("freeframe.types.previewOnly", "%prefix% &7This frame is preview-only.");
-        config.addDefault("freeframe.types.adminOnlyDenied", "%prefix% &cThis frame is restricted to admins.");
-        config.addDefault("freeframe.auction.invalid", "%prefix% &cInvalid auction request.");
-        config.addDefault("freeframe.auction.notEnabled", "%prefix% &cThis frame is not in auction mode.");
-        config.addDefault("freeframe.auction.useBid", "%prefix% &eThis frame is in auction mode. Use /freeframe bid <id> <amount>.");
-        config.addDefault("freeframe.auction.ended", "%prefix% &cAuction already ended.");
-        config.addDefault("freeframe.auction.bidTooLow", "%prefix% &cBid too low. Minimum is &e%price%&c.");
-        config.addDefault("freeframe.auction.bidAccepted", "%prefix% &aBid accepted: &e%price%&a.");
-
-        config.addDefault("freeframe.metrics.bstatsPluginId", 0);
-        config.addDefault("freeframe.placeholderapi.enabled", true);
-
-        config.addDefault("freeframe.economy.allowWithoutVault", false);
-        config.addDefault("freeframe.economy.payOwner", true);
-        config.addDefault("freeframe.economy.payOwnerOnSelfPurchase", false);
-        config.addDefault("freeframe.discounts.permissions.freeframe.discount.vip", 10.0D);
-        config.addDefault("freeframe.discounts.permissions.freeframe.discount.mvp", 25.0D);
-        config.addDefault("freeframe.tax.enabled", false);
-        config.addDefault("freeframe.tax.defaultPercent", 5.0D);
-        config.addDefault("freeframe.tax.adminShopPercent", 5.0D);
-        config.addDefault("freeframe.tax.userShopPercent", 5.0D);
-        config.addDefault("freeframe.tax.roundToCents", true);
-        config.addDefault("freeframe.tax.depositToAccount", false);
-        config.addDefault("freeframe.tax.serverAccountName", "server");
-
-        config.addDefault("freeframe.dynamicPricing.enabled", false);
-        config.addDefault("freeframe.dynamicPricing.windowMillis", 600000L);
-        config.addDefault("freeframe.dynamicPricing.demandThreshold", 5);
-        config.addDefault("freeframe.dynamicPricing.demandStepPercent", 2.5D);
-        config.addDefault("freeframe.dynamicPricing.lowStockThresholdPercent", 20.0D);
-        config.addDefault("freeframe.dynamicPricing.lowStockBonusPercent", 5.0D);
-        config.addDefault("freeframe.dynamicPricing.minMultiplier", 0.75D);
-        config.addDefault("freeframe.dynamicPricing.maxMultiplier", 2.50D);
-
-        config.addDefault("freeframe.seasons.enabled", false);
-        config.addDefault("freeframe.seasons.timezone", "UTC");
-        config.addDefault("freeframe.seasons.rules.default.enabled", false);
-        config.addDefault("freeframe.seasons.rules.default.start", "2026-01-01T00:00");
-        config.addDefault("freeframe.seasons.rules.default.end", "2026-12-31T23:59");
-        config.addDefault("freeframe.seasons.rules.default.priceMultiplier", 1.0D);
-        config.addDefault("freeframe.seasons.rules.default.taxOverridePercent", 5.0D);
-
-        config.addDefault("freeframe.auction.enabled", true);
-        config.addDefault("freeframe.auction.tickIntervalTicks", 40L);
-        config.addDefault("freeframe.auction.offlineGraceMillis", 300000L);
-
-        config.addDefault("freeframe.alerts.enabled", false);
-        config.addDefault("freeframe.alerts.cooldownMillis", 120000L);
-        config.addDefault("freeframe.alerts.lowStockThreshold", 5);
-
-        config.addDefault("freeframe.stock.default", 64);
-        config.addDefault("freeframe.stock.defaultMax", 64);
-        config.addDefault("freeframe.stock.autoRefill.defaultEnabled", false);
-        config.addDefault("freeframe.stock.autoRefill.defaultIntervalMillis", 300000L);
-
-        config.addDefault("freeframe.limits.enabled", false);
-        config.addDefault("freeframe.limits.maxItemsPerWindow", 64);
-        config.addDefault("freeframe.limits.windowMillis", 600000L);
-
-        config.addDefault("freeframe.items.mode", "off");
-        config.addDefault("freeframe.items.blacklist", Collections.emptyList());
-        config.addDefault("freeframe.items.whitelist", Collections.emptyList());
-        config.addDefault("freeframe.items.blockedMessage", "%prefix% &cThis item type is blocked by item policy.");
-
-        config.addDefault("freeframe.logging.enabled", true);
-        config.addDefault("freeframe.logging.purchaseEnabled", true);
-        config.addDefault("freeframe.logging.adminEnabled", true);
-        config.addDefault("freeframe.logging.directory", "logs");
-        config.addDefault("freeframe.logging.filePrefix", "audit");
-        config.addDefault("freeframe.logging.extension", ".csv");
-        config.addDefault("freeframe.logging.exportDirectory", "exports");
-        config.addDefault("freeframe.webhooks.enabled", false);
-        config.addDefault("freeframe.webhooks.discordUrl", "");
-        config.addDefault("freeframe.webhooks.endpoints", Collections.emptyList());
-        config.addDefault("freeframe.webhooks.schemaVersion", "2.0");
-        config.addDefault("freeframe.webhooks.secret", "");
-        config.addDefault("freeframe.webhooks.timeoutMillis", 4000);
-        config.addDefault("freeframe.webhooks.maxRetries", 3);
-        config.addDefault("freeframe.webhooks.retryDelayMillis", 2000L);
-
-        config.addDefault("freeframe.display.enabled", true);
-        config.addDefault("freeframe.display.removeOnDisable", false);
-        config.addDefault("freeframe.display.template", "&e%item% &7| &6%currency%%price% &7| &bStock: %stock%");
-        config.addDefault("freeframe.display.onlyWhenInStock", false);
-        config.addDefault("freeframe.display.loadChunk", false);
-        config.addDefault("freeframe.display.offset.x", 0.5D);
-        config.addDefault("freeframe.display.offset.y", 0.45D);
-        config.addDefault("freeframe.display.offset.z", 0.5D);
-        config.addDefault("freeframe.display.armorStand.visible", false);
-        config.addDefault("freeframe.display.armorStand.gravity", false);
-        config.addDefault("freeframe.display.armorStand.small", true);
-        config.addDefault("freeframe.display.armorStand.marker", true);
-        config.addDefault("freeframe.display.armorStand.customNameVisible", true);
-        config.addDefault("freeframe.branding.enabled", true);
-        config.addDefault("freeframe.branding.defaultTheme", "classic");
-        config.addDefault("freeframe.branding.defaultAdminTheme", "admin");
-        config.addDefault("freeframe.branding.defaultUserTheme", "classic");
-        config.addDefault("freeframe.branding.themes.classic.displayTemplate", "&e%item% &7| &6%currency%%price% &7| &bStock: %stock%");
-        config.addDefault("freeframe.branding.themes.admin.displayTemplate", "&c[ADMIN] &f%item% &8| &6%currency%%price% &8| &bStock:%stock%");
-        config.addDefault("freeframe.branding.themes.seasonal.displayTemplate", "&d[%campaign%] &f%item% &8| &6%currency%%price% &8| &bStock:%stock%");
-
-        config.addDefault("freeframe.restrictions.denied", "%prefix% &cFreeFrame is disabled in this world/region.");
-        config.addDefault("freeframe.restrictions.worlds.enabled", false);
-        config.addDefault("freeframe.restrictions.worlds.mode", "whitelist");
-        config.addDefault("freeframe.restrictions.worlds.list", Collections.emptyList());
-        config.addDefault("freeframe.restrictions.regions.enabled", false);
-        config.addDefault("freeframe.restrictions.regions.list", Collections.emptyList());
-        config.addDefault("freeframe.integrations.worldguard.enabled", true);
-        config.addDefault("freeframe.integrations.worldguard.requiredFlag", "");
-        config.addDefault("freeframe.integrations.griefprevention.enabled", true);
-        config.addDefault("freeframe.integrations.griefprevention.mode", "allow-any");
-        config.addDefault("freeframe.localization.defaultLocale", "en");
-        config.addDefault("freeframe.localization.usePlayerLocale", true);
-
-        config.addDefault("freeframe.setup.messages.emptyFrame", "%prefix% &cThe selected ItemFrame is empty.");
-        config.addDefault("freeframe.setup.wandName", "&6FreeFrame Setup Wand");
-        config.addDefault("freeframe.setup.wandReceived", "%prefix% &aSetup wand received.");
-        config.addDefault("freeframe.setup.wandMaterial", "BLAZE_ROD");
-        config.addDefault("freeframe.setup.wandAmount", 1);
-        config.addDefault("freeframe.setup.wandLore", Arrays.asList(
-            "&7Right-click an ItemFrame to open the editor.",
-            "&7Requires admin permission."
-        ));
-        config.addDefault("freeframe.setup.editor.inventorySize", 27);
-        config.addDefault("freeframe.setup.editor.title", "&8FreeFrame Setup: &e%id%");
-        config.addDefault("freeframe.setup.editor.stockStep", 1);
-        config.addDefault("freeframe.setup.editor.maxStockStep", 8);
-        config.addDefault("freeframe.setup.editor.maxStockCap", 4096);
-        config.addDefault("freeframe.setup.editor.priceStep", 1.0D);
-        config.addDefault("freeframe.setup.editor.closeAfterChange", false);
-        config.addDefault("freeframe.setup.editor.refreshDisplay", true);
-        config.addDefault("freeframe.setup.editor.slots.info", 4);
-        config.addDefault("freeframe.setup.editor.slots.toggleActive", 10);
-        config.addDefault("freeframe.setup.editor.slots.stockDown", 11);
-        config.addDefault("freeframe.setup.editor.slots.stockUp", 12);
-        config.addDefault("freeframe.setup.editor.slots.refill", 13);
-        config.addDefault("freeframe.setup.editor.slots.priceDown", 14);
-        config.addDefault("freeframe.setup.editor.slots.priceUp", 15);
-        config.addDefault("freeframe.setup.editor.slots.toggleAutoRefill", 16);
-        config.addDefault("freeframe.setup.editor.slots.maxStockDown", 19);
-        config.addDefault("freeframe.setup.editor.slots.maxStockUp", 20);
-        config.addDefault("freeframe.setup.editor.slots.close", 22);
-        config.addDefault("freeframe.setup.editor.materials.info", "PAPER");
-        config.addDefault("freeframe.setup.editor.materials.toggleActiveOn", "EMERALD_BLOCK");
-        config.addDefault("freeframe.setup.editor.materials.toggleActiveOff", "REDSTONE_BLOCK");
-        config.addDefault("freeframe.setup.editor.materials.stockDown", "REDSTONE");
-        config.addDefault("freeframe.setup.editor.materials.stockUp", "EMERALD");
-        config.addDefault("freeframe.setup.editor.materials.refill", "CHEST");
-        config.addDefault("freeframe.setup.editor.materials.priceDown", "GOLD_NUGGET");
-        config.addDefault("freeframe.setup.editor.materials.priceUp", "GOLD_INGOT");
-        config.addDefault("freeframe.setup.editor.materials.toggleAutoRefill", "LEVER");
-        config.addDefault("freeframe.setup.editor.materials.maxStockDown", "COAL");
-        config.addDefault("freeframe.setup.editor.materials.maxStockUp", "DIAMOND");
-        config.addDefault("freeframe.setup.editor.materials.close", "BARRIER");
-
-        config.addDefault("freeframe.storage.type", "yaml");
-        config.addDefault("freeframe.storage.migrateOnSwitch", true);
-        config.addDefault("freeframe.storage.sqlite.file", "freeframe.db");
-        config.addDefault("freeframe.storage.asyncQueue.enabled", true);
-        config.addDefault("freeframe.storage.mysql.host", "127.0.0.1");
-        config.addDefault("freeframe.storage.mysql.port", 3306);
-        config.addDefault("freeframe.storage.mysql.database", "freeframe");
-        config.addDefault("freeframe.storage.mysql.username", "root");
-        config.addDefault("freeframe.storage.mysql.password", "");
-        config.addDefault("freeframe.storage.mysql.ssl", false);
-        config.addDefault("freeframe.storage.mysql.table", "freeframe_frames");
-
-        config.addDefault("freeframe.frames", Collections.emptyList());
-        config.addDefault("freeframe.framesData", Collections.emptyMap());
-        config.addDefault("freeframe.backup.created", "%prefix% &aBackup created: &e%file%&a.");
-        config.addDefault("freeframe.backup.restored", "%prefix% &aBackup restored: &e%file%&a.");
-        config.addDefault("freeframe.backup.failed", "%prefix% &cBackup action failed.");
-        config.addDefault("freeframe.stats.header", "%prefix% &6Statistics for &e%target%&6:");
-        config.addDefault("freeframe.dashboard.enabled", false);
-        config.addDefault("freeframe.dashboard.host", "127.0.0.1");
-        config.addDefault("freeframe.dashboard.port", 8095);
-        config.addDefault("freeframe.dashboard.token", "");
-        config.addDefault("freeframe.security.secret", "");
-        config.addDefault("freeframe.security.idempotencyBucketMillis", 1500L);
-        config.addDefault("freeframe.campaigns.enabled", true);
-        config.addDefault("freeframe.campaigns.timezone", "UTC");
-        config.addDefault("freeframe.campaigns.defaultRule", "");
-        config.addDefault("freeframe.campaigns.rules.flash.enabled", false);
-        config.addDefault("freeframe.campaigns.rules.flash.start", "2026-01-01T00:00");
-        config.addDefault("freeframe.campaigns.rules.flash.end", "2026-12-31T23:59");
-        config.addDefault("freeframe.campaigns.rules.flash.priceMultiplier", 0.90D);
-        config.addDefault("freeframe.campaigns.rules.flash.taxOverridePercent", 2.5D);
-        config.addDefault("freeframe.campaigns.rules.flash.brandingOverride", "seasonal");
-        config.addDefault("freeframe.moderation.enabled", true);
-        config.addDefault("freeframe.moderation.allowOwnerFrameFreeze", true);
-        config.addDefault("freeframe.networkSync.enabled", false);
-        config.addDefault("freeframe.networkSync.mode", "none");
-        config.addDefault("freeframe.networkSync.bridgeChannel", "freeframe-sync");
-        config.addDefault("freeframe.networkSync.filePollTicks", 100L);
-        config.addDefault("freeframe.networkSync.eventTtlMillis", 180000L);
-        config.addDefault("freeframe.networkSync.applyStock", true);
-        config.addDefault("freeframe.networkSync.applyPrice", false);
-        config.addDefault("freeframe.networkSync.applyRevenue", false);
-        config.addDefault("freeframe.proxy.bungeecord.enabled", true);
-        config.addDefault("freeframe.proxy.velocity.enabled", true);
-        config.addDefault("freeframe.proxy.velocity.channel", "freeframe:sync");
-        config.addDefault("freeframe.analytics.enabled", true);
-        config.addDefault("freeframe.migration.zeroDowntime.enabled", true);
+        this.configApi.setCommentsEnabled(true);
+        this.configApi.addDefaults(FreeFrameConfigKey.values());
 
         config.options().copyDefaults(true);
         this.validateConfigurationValues();
@@ -532,10 +259,10 @@ public class ConfigurationMessages {
             config.set("freeframe.localization.defaultLocale", "en");
         }
 
-        this.ensurePermissionNode("freeframe.reload.permission", "freeframe.reload");
-        this.ensurePermissionNode("freeframe.destroy.permission", "freeframe.destroy");
-        this.ensurePermissionNode("freeframe.admin.permission", "freeframe.admin");
-        this.ensurePermissionNode("freeframe.access.bypassPermission", "freeframe.access.bypass");
+        this.ensurePermissionNode(FreeFrameConfigKey.FREEFRAME_RELOAD_PERMISSION.path(), "freeframe.reload");
+        this.ensurePermissionNode(FreeFrameConfigKey.FREEFRAME_DESTROY_PERMISSION.path(), "freeframe.destroy");
+        this.ensurePermissionNode(FreeFrameConfigKey.FREEFRAME_ADMIN_PERMISSION.path(), "freeframe.admin");
+        this.ensurePermissionNode(FreeFrameConfigKey.FREEFRAME_ACCESS_BYPASSPERMISSION.path(), "freeframe.access.bypass");
     }
 
     public FileConfiguration getConfig() {
@@ -563,10 +290,10 @@ public class ConfigurationMessages {
     }
 
     private void reloadPermissionNodes() {
-        this.reloadPermissionNode = this.readPermissionNode("freeframe.reload.permission", "freeframe.reload");
-        this.destroyPermissionNode = this.readPermissionNode("freeframe.destroy.permission", "freeframe.destroy");
-        this.adminPermissionNode = this.readPermissionNode("freeframe.admin.permission", "freeframe.admin");
-        this.accessBypassPermissionNode = this.readPermissionNode("freeframe.access.bypassPermission", "freeframe.access.bypass");
+        this.reloadPermissionNode = this.readPermissionNode(FreeFrameConfigKey.FREEFRAME_RELOAD_PERMISSION.path(), "freeframe.reload");
+        this.destroyPermissionNode = this.readPermissionNode(FreeFrameConfigKey.FREEFRAME_DESTROY_PERMISSION.path(), "freeframe.destroy");
+        this.adminPermissionNode = this.readPermissionNode(FreeFrameConfigKey.FREEFRAME_ADMIN_PERMISSION.path(), "freeframe.admin");
+        this.accessBypassPermissionNode = this.readPermissionNode(FreeFrameConfigKey.FREEFRAME_ACCESS_BYPASSPERMISSION.path(), "freeframe.access.bypass");
     }
 
     private void ensurePermissionNode(String path, String fallback) {
