@@ -54,6 +54,9 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.profiles.priceMultipliers", Arrays.asList(1.0D, 16.0D, 64.0D));
         config.addDefault("freeframe.types.default", "SHOP");
         config.addDefault("freeframe.types.adminOnlyPermission", "freeframe.adminonly");
+        config.addDefault("freeframe.saleMode.default", "INSTANT");
+        config.addDefault("freeframe.shops.offerMode", "BOTH");
+        config.addDefault("freeframe.ownerManagement.enabled", true);
         config.addDefault("freeframe.chestRestock.enabled", true);
         config.addDefault("freeframe.chestRestock.requireLinkedChest", false);
 
@@ -77,10 +80,19 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.purchase.stockOut", "%prefix% &cThis frame is out of stock.");
         config.addDefault("freeframe.purchase.limited", "%prefix% &cPurchase limit reached. Try again later.");
         config.addDefault("freeframe.purchase.busy", "%prefix% &cThis frame is processing another transaction.");
+        config.addDefault("freeframe.shops.offerFiltered", "%prefix% &cThis shop type is currently disabled.");
+        config.addDefault("freeframe.security.invalid", "%prefix% &cTransaction signature invalid.");
+        config.addDefault("freeframe.security.duplicate", "%prefix% &eDuplicate purchase blocked.");
 
         config.addDefault("freeframe.frame.inactive", "%prefix% &cThis FreeFrame is currently inactive.");
         config.addDefault("freeframe.types.previewOnly", "%prefix% &7This frame is preview-only.");
         config.addDefault("freeframe.types.adminOnlyDenied", "%prefix% &cThis frame is restricted to admins.");
+        config.addDefault("freeframe.auction.invalid", "%prefix% &cInvalid auction request.");
+        config.addDefault("freeframe.auction.notEnabled", "%prefix% &cThis frame is not in auction mode.");
+        config.addDefault("freeframe.auction.useBid", "%prefix% &eThis frame is in auction mode. Use /freeframe bid <id> <amount>.");
+        config.addDefault("freeframe.auction.ended", "%prefix% &cAuction already ended.");
+        config.addDefault("freeframe.auction.bidTooLow", "%prefix% &cBid too low. Minimum is &e%price%&c.");
+        config.addDefault("freeframe.auction.bidAccepted", "%prefix% &aBid accepted: &e%price%&a.");
 
         config.addDefault("freeframe.metrics.bstatsPluginId", 0);
         config.addDefault("freeframe.placeholderapi.enabled", true);
@@ -90,6 +102,38 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.economy.payOwnerOnSelfPurchase", false);
         config.addDefault("freeframe.discounts.permissions.freeframe.discount.vip", 10.0D);
         config.addDefault("freeframe.discounts.permissions.freeframe.discount.mvp", 25.0D);
+        config.addDefault("freeframe.tax.enabled", false);
+        config.addDefault("freeframe.tax.defaultPercent", 5.0D);
+        config.addDefault("freeframe.tax.adminShopPercent", 5.0D);
+        config.addDefault("freeframe.tax.userShopPercent", 5.0D);
+        config.addDefault("freeframe.tax.roundToCents", true);
+        config.addDefault("freeframe.tax.depositToAccount", false);
+        config.addDefault("freeframe.tax.serverAccountName", "server");
+
+        config.addDefault("freeframe.dynamicPricing.enabled", false);
+        config.addDefault("freeframe.dynamicPricing.windowMillis", 600000L);
+        config.addDefault("freeframe.dynamicPricing.demandThreshold", 5);
+        config.addDefault("freeframe.dynamicPricing.demandStepPercent", 2.5D);
+        config.addDefault("freeframe.dynamicPricing.lowStockThresholdPercent", 20.0D);
+        config.addDefault("freeframe.dynamicPricing.lowStockBonusPercent", 5.0D);
+        config.addDefault("freeframe.dynamicPricing.minMultiplier", 0.75D);
+        config.addDefault("freeframe.dynamicPricing.maxMultiplier", 2.50D);
+
+        config.addDefault("freeframe.seasons.enabled", false);
+        config.addDefault("freeframe.seasons.timezone", "UTC");
+        config.addDefault("freeframe.seasons.rules.default.enabled", false);
+        config.addDefault("freeframe.seasons.rules.default.start", "2026-01-01T00:00");
+        config.addDefault("freeframe.seasons.rules.default.end", "2026-12-31T23:59");
+        config.addDefault("freeframe.seasons.rules.default.priceMultiplier", 1.0D);
+        config.addDefault("freeframe.seasons.rules.default.taxOverridePercent", 5.0D);
+
+        config.addDefault("freeframe.auction.enabled", true);
+        config.addDefault("freeframe.auction.tickIntervalTicks", 40L);
+        config.addDefault("freeframe.auction.offlineGraceMillis", 300000L);
+
+        config.addDefault("freeframe.alerts.enabled", false);
+        config.addDefault("freeframe.alerts.cooldownMillis", 120000L);
+        config.addDefault("freeframe.alerts.lowStockThreshold", 5);
 
         config.addDefault("freeframe.stock.default", 64);
         config.addDefault("freeframe.stock.defaultMax", 64);
@@ -186,6 +230,7 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.storage.type", "yaml");
         config.addDefault("freeframe.storage.migrateOnSwitch", true);
         config.addDefault("freeframe.storage.sqlite.file", "freeframe.db");
+        config.addDefault("freeframe.storage.asyncQueue.enabled", true);
         config.addDefault("freeframe.storage.mysql.host", "127.0.0.1");
         config.addDefault("freeframe.storage.mysql.port", 3306);
         config.addDefault("freeframe.storage.mysql.database", "freeframe");
@@ -200,6 +245,12 @@ public class ConfigurationMessages {
         config.addDefault("freeframe.backup.restored", "%prefix% &aBackup restored: &e%file%&a.");
         config.addDefault("freeframe.backup.failed", "%prefix% &cBackup action failed.");
         config.addDefault("freeframe.stats.header", "%prefix% &6Statistics for &e%target%&6:");
+        config.addDefault("freeframe.dashboard.enabled", false);
+        config.addDefault("freeframe.dashboard.host", "127.0.0.1");
+        config.addDefault("freeframe.dashboard.port", 8095);
+        config.addDefault("freeframe.dashboard.token", "");
+        config.addDefault("freeframe.security.secret", "");
+        config.addDefault("freeframe.security.idempotencyBucketMillis", 1500L);
 
         config.options().copyDefaults(true);
         this.validateConfigurationValues();
@@ -318,6 +369,37 @@ public class ConfigurationMessages {
 
         if (config.getLong("freeframe.stock.autoRefill.defaultIntervalMillis", 300000L) < 0L) {
             config.set("freeframe.stock.autoRefill.defaultIntervalMillis", 300000L);
+        }
+
+        String offerMode = config.getString("freeframe.shops.offerMode", "BOTH");
+        if (!"ADMIN".equalsIgnoreCase(offerMode) && !"USER".equalsIgnoreCase(offerMode) && !"BOTH".equalsIgnoreCase(offerMode)) {
+            config.set("freeframe.shops.offerMode", "BOTH");
+        }
+
+        if (config.getDouble("freeframe.tax.defaultPercent", 5.0D) < 0.0D) {
+            config.set("freeframe.tax.defaultPercent", 0.0D);
+        }
+        if (config.getDouble("freeframe.tax.adminShopPercent", 5.0D) < 0.0D) {
+            config.set("freeframe.tax.adminShopPercent", 0.0D);
+        }
+        if (config.getDouble("freeframe.tax.userShopPercent", 5.0D) < 0.0D) {
+            config.set("freeframe.tax.userShopPercent", 0.0D);
+        }
+
+        if (config.getLong("freeframe.dynamicPricing.windowMillis", 600000L) < 5000L) {
+            config.set("freeframe.dynamicPricing.windowMillis", 600000L);
+        }
+        if (config.getInt("freeframe.dynamicPricing.demandThreshold", 5) < 1) {
+            config.set("freeframe.dynamicPricing.demandThreshold", 5);
+        }
+
+        if (config.getLong("freeframe.security.idempotencyBucketMillis", 1500L) < 250L) {
+            config.set("freeframe.security.idempotencyBucketMillis", 1500L);
+        }
+
+        int dashboardPort = config.getInt("freeframe.dashboard.port", 8095);
+        if (dashboardPort < 1 || dashboardPort > 65535) {
+            config.set("freeframe.dashboard.port", 8095);
         }
 
         if (config.getInt("freeframe.limits.maxItemsPerWindow", 64) < 1) {

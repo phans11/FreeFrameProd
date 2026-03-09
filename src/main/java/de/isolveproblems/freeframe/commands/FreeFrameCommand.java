@@ -3,14 +3,16 @@ package de.isolveproblems.freeframe.commands;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.FrameType;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
+import de.isolveproblems.freeframe.api.SaleMode;
+import de.isolveproblems.freeframe.api.ShopOwnerType;
 import de.isolveproblems.freeframe.utils.BlockReference;
 import de.isolveproblems.freeframe.utils.FrameReference;
 import de.isolveproblems.freeframe.utils.FrameRepairReport;
 import de.isolveproblems.freeframe.utils.FrameRegistry;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
+import de.isolveproblems.freeframe.utils.JournalReplayReport;
 import de.isolveproblems.freeframe.utils.SetupWandItem;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -18,8 +20,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -51,25 +53,39 @@ public class FreeFrameCommand implements TabExecutor {
             this.sendInfo(sender);
             return true;
         }
-
         if ("reload".equals(subCommand)) {
             return this.handleReload(sender);
         }
-
-        if (!this.hasAdminPermission(sender)) {
-            sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+        if ("bid".equals(subCommand)) {
+            this.handleBid(sender, args);
+            return true;
+        }
+        if ("myshops".equals(subCommand)) {
+            this.handleMyShops(sender);
             return true;
         }
 
         if ("list".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             this.handleList(sender, args);
             return true;
         }
         if ("inspect".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             this.handleInspect(sender, args);
             return true;
         }
         if ("remove".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             this.handleRemove(sender, args);
             return true;
         }
@@ -85,6 +101,14 @@ public class FreeFrameCommand implements TabExecutor {
             this.handleSetType(sender, args);
             return true;
         }
+        if ("shoptype".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
+            this.handleShopType(sender, args);
+            return true;
+        }
         if ("setprofile".equals(subCommand)) {
             this.handleSetProfile(sender, args);
             return true;
@@ -97,42 +121,94 @@ public class FreeFrameCommand implements TabExecutor {
             this.handleLinkChest(sender, args);
             return true;
         }
+        if ("network".equals(subCommand)) {
+            this.handleNetwork(sender, args);
+            return true;
+        }
+        if ("season".equals(subCommand)) {
+            this.handleSeason(sender, args);
+            return true;
+        }
+        if ("auction".equals(subCommand)) {
+            this.handleAuction(sender, args);
+            return true;
+        }
         if ("stats".equals(subCommand)) {
             this.handleStats(sender, args);
             return true;
         }
         if ("backup".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             this.handleBackup(sender);
             return true;
         }
         if ("restore".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             this.handleRestore(sender, args);
             return true;
         }
         if ("doctor".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             this.handleDoctor(sender);
             return true;
         }
+        if ("replay".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
+            this.handleReplay(sender, args);
+            return true;
+        }
         if ("wand".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             this.handleWand(sender);
             return true;
         }
         if ("export".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             this.handleExport(sender);
             return true;
         }
         if ("storage".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             this.handleStorage(sender, args);
             return true;
         }
         if ("migrate".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             int migrated = this.freeframe.getFrameRegistry().migrateLegacyFrames();
             this.freeframe.getDisplayService().refreshAll(this.freeframe.getFrameRegistry().listFrames());
             sender.sendMessage(this.freeframe.formatMessage("%prefix% &aMigration finished. Migrated entries: &e" + migrated + "&a."));
-            this.logAdminAction(sender, "migrate", "migrated=" + migrated);
+            this.logAction(sender, "migrate", "migrated=" + migrated);
             return true;
         }
         if ("repair".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             FrameRepairReport report = this.freeframe.getFrameRegistry().repairFrames();
             this.freeframe.getDisplayService().refreshAll(this.freeframe.getFrameRegistry().listFrames());
             sender.sendMessage(this.freeframe.formatMessage(
@@ -140,11 +216,14 @@ public class FreeFrameCommand implements TabExecutor {
                     + "&a, duplicates: &e" + report.getRemovedDuplicates()
                     + "&a, normalized: &e" + report.getNormalizedFrames() + "&a."
             ));
-            this.logAdminAction(sender, "repair",
-                "invalid=" + report.getRemovedInvalidFrames() + " duplicates=" + report.getRemovedDuplicates());
+            this.logAction(sender, "repair", "invalid=" + report.getRemovedInvalidFrames());
             return true;
         }
         if ("debug".equals(subCommand)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return true;
+            }
             this.handleDebug(sender);
             return true;
         }
@@ -160,25 +239,33 @@ public class FreeFrameCommand implements TabExecutor {
             List<String> completions = new ArrayList<String>();
             this.addCompletion(completions, "help", args[0]);
             this.addCompletion(completions, "info", args[0]);
+            this.addCompletion(completions, "bid", args[0]);
+            this.addCompletion(completions, "myshops", args[0]);
 
             if (sender.hasPermission(this.freeframe.getConfigHandler().getReloadPermissionNode())) {
                 this.addCompletion(completions, "reload", args[0]);
             }
 
+            this.addCompletion(completions, "setprice", args[0]);
+            this.addCompletion(completions, "setstock", args[0]);
+            this.addCompletion(completions, "setprofile", args[0]);
+            this.addCompletion(completions, "clearprofiles", args[0]);
+            this.addCompletion(completions, "linkchest", args[0]);
+            this.addCompletion(completions, "network", args[0]);
+            this.addCompletion(completions, "season", args[0]);
+            this.addCompletion(completions, "auction", args[0]);
+            this.addCompletion(completions, "stats", args[0]);
+
             if (this.hasAdminPermission(sender)) {
                 this.addCompletion(completions, "list", args[0]);
                 this.addCompletion(completions, "inspect", args[0]);
                 this.addCompletion(completions, "remove", args[0]);
-                this.addCompletion(completions, "setprice", args[0]);
-                this.addCompletion(completions, "setstock", args[0]);
                 this.addCompletion(completions, "settype", args[0]);
-                this.addCompletion(completions, "setprofile", args[0]);
-                this.addCompletion(completions, "clearprofiles", args[0]);
-                this.addCompletion(completions, "linkchest", args[0]);
-                this.addCompletion(completions, "stats", args[0]);
+                this.addCompletion(completions, "shoptype", args[0]);
                 this.addCompletion(completions, "backup", args[0]);
                 this.addCompletion(completions, "restore", args[0]);
                 this.addCompletion(completions, "doctor", args[0]);
+                this.addCompletion(completions, "replay", args[0]);
                 this.addCompletion(completions, "wand", args[0]);
                 this.addCompletion(completions, "export", args[0]);
                 this.addCompletion(completions, "storage", args[0]);
@@ -189,38 +276,43 @@ public class FreeFrameCommand implements TabExecutor {
             return completions;
         }
 
-        if (!this.hasAdminPermission(sender)) {
-            return Collections.emptyList();
-        }
-
         String subCommand = args[0].toLowerCase(Locale.ENGLISH);
-        if (args.length == 2 && this.equalsAny(subCommand, "inspect", "remove", "setprice", "setstock", "settype", "setprofile", "clearprofiles", "linkchest")) {
+        if (args.length == 2 && this.equalsAny(subCommand, "inspect", "remove", "setprice", "setstock", "settype", "setprofile", "clearprofiles", "linkchest", "shoptype", "bid")) {
             return this.completeFrameIds(args[1]);
         }
-
-        if (args.length == 2 && "storage".equals(subCommand)) {
-            List<String> completions = new ArrayList<String>();
-            this.addCompletion(completions, "yaml", args[1]);
-            this.addCompletion(completions, "sqlite", args[1]);
-            this.addCompletion(completions, "mysql", args[1]);
-            return completions;
-        }
-
-        if (args.length == 2 && "stats".equals(subCommand)) {
-            List<String> completions = new ArrayList<String>();
-            this.addCompletion(completions, "frame", args[1]);
-            this.addCompletion(completions, "player", args[1]);
-            return completions;
-        }
-
-        if (args.length == 3 && "stats".equals(subCommand) && "frame".equalsIgnoreCase(args[1])) {
-            return this.completeFrameIds(args[2]);
-        }
-
         if (args.length == 2 && "restore".equals(subCommand)) {
             return this.completeBackupFiles(args[1]);
         }
-
+        if (args.length == 2 && "auction".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "start", args[1]);
+            this.addCompletion(completions, "stop", args[1]);
+            this.addCompletion(completions, "info", args[1]);
+            return completions;
+        }
+        if (args.length == 2 && "network".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "set", args[1]);
+            this.addCompletion(completions, "clear", args[1]);
+            this.addCompletion(completions, "info", args[1]);
+            return completions;
+        }
+        if (args.length == 2 && "season".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "set", args[1]);
+            this.addCompletion(completions, "clear", args[1]);
+            this.addCompletion(completions, "info", args[1]);
+            return completions;
+        }
+        if (args.length == 3 && "auction".equals(subCommand) && this.equalsAny(args[1], "start", "stop", "info")) {
+            return this.completeFrameIds(args[2]);
+        }
+        if (args.length == 3 && "network".equals(subCommand) && this.equalsAny(args[1], "set", "clear")) {
+            return this.completeFrameIds(args[2]);
+        }
+        if (args.length == 3 && "season".equals(subCommand) && this.equalsAny(args[1], "set", "clear", "info")) {
+            return this.completeFrameIds(args[2]);
+        }
         if (args.length == 3 && "settype".equals(subCommand)) {
             List<String> completions = new ArrayList<String>();
             for (FrameType type : FrameType.values()) {
@@ -228,15 +320,33 @@ public class FreeFrameCommand implements TabExecutor {
             }
             return completions;
         }
-
-        if (args.length == 4 && "setprice".equals(subCommand)) {
+        if (args.length == 3 && "shoptype".equals(subCommand)) {
             List<String> completions = new ArrayList<String>();
-            this.addCompletion(completions, "$", args[3]);
-            this.addCompletion(completions, "coins", args[3]);
-            this.addCompletion(completions, "credits", args[3]);
+            this.addCompletion(completions, "admin", args[2]);
+            this.addCompletion(completions, "user", args[2]);
             return completions;
         }
-
+        if (args.length == 2 && "stats".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "frame", args[1]);
+            this.addCompletion(completions, "player", args[1]);
+            return completions;
+        }
+        if (args.length == 3 && "stats".equals(subCommand) && "frame".equalsIgnoreCase(args[1])) {
+            return this.completeFrameIds(args[2]);
+        }
+        if (args.length == 2 && "storage".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "yaml", args[1]);
+            this.addCompletion(completions, "sqlite", args[1]);
+            this.addCompletion(completions, "mysql", args[1]);
+            return completions;
+        }
+        if (args.length == 2 && "replay".equals(subCommand)) {
+            List<String> completions = new ArrayList<String>();
+            this.addCompletion(completions, "dry", args[1]);
+            return completions;
+        }
         return Collections.emptyList();
     }
 
@@ -263,8 +373,69 @@ public class FreeFrameCommand implements TabExecutor {
                 + " &7normalized: &e" + repairReport.getNormalizedFrames()
         ));
         sender.sendMessage(this.freeframe.getPrefix());
-        this.logAdminAction(sender, "reload", "migrated=" + migrated);
+        this.logAction(sender, "reload", "migrated=" + migrated);
         return true;
+    }
+
+    private void handleBid(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cOnly players can place bids."));
+            return;
+        }
+        if (args.length < 3) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe bid <id> <amount>"));
+            return;
+        }
+
+        FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[1]);
+        if (data == null) {
+            sender.sendMessage(this.unknownFrameMessage(args[1]));
+            return;
+        }
+
+        double bid;
+        try {
+            bid = Double.parseDouble(args[2]);
+        } catch (NumberFormatException exception) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cBid must be numeric."));
+            return;
+        }
+        if (bid <= 0.0D) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cBid must be > 0."));
+            return;
+        }
+
+        String response = this.freeframe.getAuctionService().placeBid((Player) sender, data, bid);
+        sender.sendMessage(response);
+        this.logAction(sender, "bid", data.getId() + "=" + bid);
+    }
+
+    private void handleMyShops(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cOnly players have own shops."));
+            return;
+        }
+
+        Player player = (Player) sender;
+        List<FreeFrameData> all = this.freeframe.getFrameRegistry().listFrames();
+        sender.sendMessage(this.freeframe.getPrefix());
+        int count = 0;
+        for (FreeFrameData data : all) {
+            if (!data.isOwnedBy(player.getUniqueId().toString())) {
+                continue;
+            }
+            count++;
+            sender.sendMessage(this.freeframe.colorize(
+                "&8- &e" + data.getId()
+                    + " &8| &7type: &f" + data.getFrameType().name()
+                    + " &8| &7ownerType: &f" + data.getShopOwnerType().name()
+                    + " &8| &7mode: &f" + data.getSaleMode().name()
+                    + " &8| &7price: &f" + data.getCurrency() + this.formatPrice(data.getPrice())
+                    + " &8| &7stock: &f" + data.getStock() + "/" + data.getMaxStock()
+            ));
+        }
+        sender.sendMessage(this.freeframe.colorize("&6Owned shops: &e" + count));
+        sender.sendMessage(this.freeframe.getPrefix());
     }
 
     private void handleList(CommandSender sender, String[] args) {
@@ -295,6 +466,8 @@ public class FreeFrameCommand implements TabExecutor {
             sender.sendMessage(this.freeframe.colorize(
                 "&8- &e" + data.getId()
                     + " &8| &7type: &f" + data.getFrameType().name()
+                    + " &8| &7ownerType: &f" + data.getShopOwnerType().name()
+                    + " &8| &7mode: &f" + data.getSaleMode().name()
                     + " &8| &7owner: &f" + data.getOwnerName()
                     + " &8| &7price: &f" + data.getCurrency() + this.formatPrice(data.getPrice())
                     + " &8| &7stock: &f" + data.getStock() + "/" + data.getMaxStock()
@@ -327,14 +500,20 @@ public class FreeFrameCommand implements TabExecutor {
         sender.sendMessage(this.freeframe.getPrefix());
         sender.sendMessage(this.freeframe.colorize("&6Frame ID: &e" + data.getId()));
         sender.sendMessage(this.freeframe.colorize("&6Owner: &e" + data.getOwnerName() + " &7(" + data.getOwnerUuid() + ")"));
+        sender.sendMessage(this.freeframe.colorize("&6Shop Owner Type: &e" + data.getShopOwnerType().name()));
         sender.sendMessage(this.freeframe.colorize("&6Item: &e" + data.getItemType()));
         sender.sendMessage(this.freeframe.colorize("&6Type: &e" + data.getFrameType().name()));
+        sender.sendMessage(this.freeframe.colorize("&6Sale Mode: &e" + data.getSaleMode().name()));
+        sender.sendMessage(this.freeframe.colorize("&6Network: &e" + (data.getNetworkId().isEmpty() ? "-" : data.getNetworkId())));
+        sender.sendMessage(this.freeframe.colorize("&6Season Rule: &e" + (data.getSeasonRuleId().isEmpty() ? "-" : data.getSeasonRuleId())));
         sender.sendMessage(this.freeframe.colorize("&6Base Price: &e" + data.getCurrency() + this.formatPrice(data.getPrice())));
         sender.sendMessage(this.freeframe.colorize("&6Stock: &e" + data.getStock() + "/" + data.getMaxStock()));
         sender.sendMessage(this.freeframe.colorize("&6Auto Refill: &e" + data.isAutoRefill() + " &7(" + data.getRefillIntervalMillis() + "ms)"));
         sender.sendMessage(this.freeframe.colorize("&6Revenue: &e" + data.getCurrency() + this.formatPrice(data.getRevenueTotal())));
+        sender.sendMessage(this.freeframe.colorize("&6Collected Tax: &e" + data.getCurrency() + this.formatPrice(data.getCollectedTaxTotal())));
         sender.sendMessage(this.freeframe.colorize("&6Linked Chest: &e" + linkedChest));
         sender.sendMessage(this.freeframe.colorize("&6Profiles: &e" + this.describeProfiles(data.getPurchaseProfiles(), data.getCurrency())));
+        sender.sendMessage(this.freeframe.colorize("&6Auction: &e" + this.freeframe.getAuctionService().describe(data)));
         sender.sendMessage(this.freeframe.colorize("&6Active: &e" + data.isActive()));
         sender.sendMessage(this.freeframe.colorize("&6Location: &e" + location));
         sender.sendMessage(this.freeframe.colorize("&6Attached Face: &e" + facing));
@@ -357,7 +536,7 @@ public class FreeFrameCommand implements TabExecutor {
 
         this.freeframe.getMetricsTracker().incrementAdminRemovals();
         sender.sendMessage(this.freeframe.formatMessage("%prefix% &aRemoved FreeFrame &e" + id.toLowerCase(Locale.ENGLISH) + "&a."));
-        this.logAdminAction(sender, "remove", id.toLowerCase(Locale.ENGLISH));
+        this.logAction(sender, "remove", id.toLowerCase(Locale.ENGLISH));
     }
 
     private void handleSetPrice(CommandSender sender, String[] args) {
@@ -366,7 +545,11 @@ public class FreeFrameCommand implements TabExecutor {
             return;
         }
 
-        String id = args[1];
+        FreeFrameData data = this.requireManagedFrame(sender, args[1], true);
+        if (data == null) {
+            return;
+        }
+
         double price;
         try {
             price = Double.parseDouble(args[2]);
@@ -380,23 +563,15 @@ public class FreeFrameCommand implements TabExecutor {
             return;
         }
 
-        String currency = args.length >= 4 ? args[3] : null;
-        if (!this.freeframe.getFrameRegistry().updatePrice(id, price, currency)) {
-            sender.sendMessage(this.unknownFrameMessage(id));
-            return;
+        String currency = args.length >= 4 ? args[3] : data.getCurrency();
+        data.setPrice(price);
+        if (currency != null && !currency.trim().isEmpty()) {
+            data.setCurrency(currency.trim());
         }
-
-        FreeFrameData updated = this.freeframe.getFrameRegistry().findById(id);
-        if (updated == null) {
-            sender.sendMessage(this.unknownFrameMessage(id));
-            return;
-        }
-
-        sender.sendMessage(this.freeframe.formatMessage(
-            "%prefix% &aUpdated price for &e" + updated.getId() + " &ato &e"
-                + updated.getCurrency() + this.formatPrice(updated.getPrice()) + "&a."
-        ));
-        this.logAdminAction(sender, "setprice", updated.getId() + "=" + updated.getPrice());
+        this.freeframe.getFrameRegistry().saveToConfig();
+        this.freeframe.getDisplayService().refresh(data);
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &aUpdated price for &e" + data.getId() + " &ato &e" + data.getCurrency() + this.formatPrice(data.getPrice()) + "&a."));
+        this.logAction(sender, "setprice", data.getId() + "=" + data.getPrice());
     }
 
     private void handleSetStock(CommandSender sender, String[] args) {
@@ -405,9 +580,8 @@ public class FreeFrameCommand implements TabExecutor {
             return;
         }
 
-        FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[1]);
+        FreeFrameData data = this.requireManagedFrame(sender, args[1], true);
         if (data == null) {
-            sender.sendMessage(this.unknownFrameMessage(args[1]));
             return;
         }
 
@@ -432,9 +606,8 @@ public class FreeFrameCommand implements TabExecutor {
         data.setStock(stock);
         this.freeframe.getFrameRegistry().saveToConfig();
         this.freeframe.getDisplayService().refresh(data);
-
         sender.sendMessage(this.freeframe.formatMessage("%prefix% &aUpdated stock for &e" + data.getId() + " &ato &e" + data.getStock() + "/" + data.getMaxStock() + "&a."));
-        this.logAdminAction(sender, "setstock", data.getId() + "=" + data.getStock() + "/" + data.getMaxStock());
+        this.logAction(sender, "setstock", data.getId() + "=" + data.getStock() + "/" + data.getMaxStock());
     }
 
     private void handleSetType(CommandSender sender, String[] args) {
@@ -443,9 +616,8 @@ public class FreeFrameCommand implements TabExecutor {
             return;
         }
 
-        FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[1]);
+        FreeFrameData data = this.requireManagedFrame(sender, args[1], true);
         if (data == null) {
-            sender.sendMessage(this.unknownFrameMessage(args[1]));
             return;
         }
 
@@ -454,7 +626,27 @@ public class FreeFrameCommand implements TabExecutor {
         this.freeframe.getFrameRegistry().saveToConfig();
         this.freeframe.getDisplayService().refresh(data);
         sender.sendMessage(this.freeframe.formatMessage("%prefix% &aUpdated type for &e" + data.getId() + " &ato &e" + type.name() + "&a."));
-        this.logAdminAction(sender, "settype", data.getId() + "=" + type.name());
+        this.logAction(sender, "settype", data.getId() + "=" + type.name());
+    }
+
+    private void handleShopType(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe shoptype <id> <admin|user>"));
+            return;
+        }
+
+        FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[1]);
+        if (data == null) {
+            sender.sendMessage(this.unknownFrameMessage(args[1]));
+            return;
+        }
+
+        ShopOwnerType ownerType = ShopOwnerType.fromString(args[2]);
+        data.setShopOwnerType(ownerType);
+        this.freeframe.getFrameRegistry().saveToConfig();
+        this.freeframe.getDisplayService().refresh(data);
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &aUpdated shop owner type for &e" + data.getId() + " &ato &e" + ownerType.name() + "&a."));
+        this.logAction(sender, "shoptype", data.getId() + "=" + ownerType.name());
     }
 
     private void handleSetProfile(CommandSender sender, String[] args) {
@@ -463,9 +655,8 @@ public class FreeFrameCommand implements TabExecutor {
             return;
         }
 
-        FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[1]);
+        FreeFrameData data = this.requireManagedFrame(sender, args[1], true);
         if (data == null) {
-            sender.sendMessage(this.unknownFrameMessage(args[1]));
             return;
         }
 
@@ -502,7 +693,7 @@ public class FreeFrameCommand implements TabExecutor {
         this.freeframe.getFrameRegistry().saveToConfig();
         this.freeframe.getDisplayService().refresh(data);
         sender.sendMessage(this.freeframe.formatMessage("%prefix% &aUpdated profile on slot &e" + slot + " &afor &e" + data.getId() + "&a."));
-        this.logAdminAction(sender, "setprofile", data.getId() + " slot=" + slot + " amount=" + amount + " price=" + price);
+        this.logAction(sender, "setprofile", data.getId() + " slot=" + slot + " amount=" + amount + " price=" + price);
     }
 
     private void handleClearProfiles(CommandSender sender, String[] args) {
@@ -511,9 +702,8 @@ public class FreeFrameCommand implements TabExecutor {
             return;
         }
 
-        FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[1]);
+        FreeFrameData data = this.requireManagedFrame(sender, args[1], true);
         if (data == null) {
-            sender.sendMessage(this.unknownFrameMessage(args[1]));
             return;
         }
 
@@ -521,9 +711,10 @@ public class FreeFrameCommand implements TabExecutor {
         this.freeframe.getFrameRegistry().saveToConfig();
         this.freeframe.getDisplayService().refresh(data);
         sender.sendMessage(this.freeframe.formatMessage("%prefix% &aReset profiles for &e" + data.getId() + "&a."));
-        this.logAdminAction(sender, "clearprofiles", data.getId());
+        this.logAction(sender, "clearprofiles", data.getId());
     }
 
+    @SuppressWarnings("unchecked")
     private void handleLinkChest(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
             sender.sendMessage(this.freeframe.formatMessage("%prefix% &cOnly players can link a chest."));
@@ -534,9 +725,8 @@ public class FreeFrameCommand implements TabExecutor {
             return;
         }
 
-        FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[1]);
+        FreeFrameData data = this.requireManagedFrame(sender, args[1], true);
         if (data == null) {
-            sender.sendMessage(this.unknownFrameMessage(args[1]));
             return;
         }
 
@@ -556,7 +746,192 @@ public class FreeFrameCommand implements TabExecutor {
         data.setLinkedChest(BlockReference.fromLocation(target.getLocation()));
         this.freeframe.getFrameRegistry().saveToConfig();
         sender.sendMessage(this.freeframe.formatMessage("%prefix% &aLinked inventory block to &e" + data.getId() + "&a."));
-        this.logAdminAction(sender, "linkchest", data.getId() + "=" + data.getLinkedChest().serialize());
+        this.logAction(sender, "linkchest", data.getId() + "=" + data.getLinkedChest().serialize());
+    }
+
+    private void handleNetwork(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe network <set|clear|info> ..."));
+            return;
+        }
+        String action = args[1].toLowerCase(Locale.ENGLISH);
+        if ("set".equals(action)) {
+            if (args.length < 4) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe network set <id> <networkId>"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            String networkId = args[3].trim().toLowerCase(Locale.ENGLISH);
+            if ("none".equals(networkId) || "null".equals(networkId)) {
+                networkId = "";
+            }
+            data.setNetworkId(networkId);
+            this.freeframe.getFrameRegistry().saveToConfig();
+            this.freeframe.getDisplayService().refresh(data);
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aNetwork for &e" + data.getId() + " &aset to &e" + (networkId.isEmpty() ? "-" : networkId)));
+            this.logAction(sender, "network-set", data.getId() + "=" + networkId);
+            return;
+        }
+        if ("clear".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe network clear <id>"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            data.setNetworkId("");
+            this.freeframe.getFrameRegistry().saveToConfig();
+            this.freeframe.getDisplayService().refresh(data);
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aNetwork for &e" + data.getId() + " &acleared."));
+            this.logAction(sender, "network-clear", data.getId());
+            return;
+        }
+        if ("info".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe network info <id|networkId>"));
+                return;
+            }
+            FreeFrameData frame = this.freeframe.getFrameRegistry().findById(args[2]);
+            String networkId = frame == null ? args[2].toLowerCase(Locale.ENGLISH) : frame.getNetworkId();
+            int size = this.freeframe.getShopNetworkService().sizeOfNetwork(networkId);
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &7Network &e" + networkId + " &7contains &e" + size + " &7frames."));
+            return;
+        }
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe network <set|clear|info> ..."));
+    }
+
+    private void handleSeason(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe season <set|clear|info> ..."));
+            return;
+        }
+        String action = args[1].toLowerCase(Locale.ENGLISH);
+        if ("set".equals(action)) {
+            if (args.length < 4) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe season set <id> <ruleId>"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            String ruleId = args[3].trim().toLowerCase(Locale.ENGLISH);
+            if ("none".equals(ruleId) || "null".equals(ruleId)) {
+                ruleId = "";
+            }
+            data.setSeasonRuleId(ruleId);
+            this.freeframe.getFrameRegistry().saveToConfig();
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aSeason rule for &e" + data.getId() + " &aset to &e" + (ruleId.isEmpty() ? "-" : ruleId)));
+            this.logAction(sender, "season-set", data.getId() + "=" + ruleId);
+            return;
+        }
+        if ("clear".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe season clear <id>"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            data.setSeasonRuleId("");
+            this.freeframe.getFrameRegistry().saveToConfig();
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aSeason rule for &e" + data.getId() + " &acleared."));
+            this.logAction(sender, "season-clear", data.getId());
+            return;
+        }
+        if ("info".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe season info <id>"));
+                return;
+            }
+            FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[2]);
+            if (data == null) {
+                sender.sendMessage(this.unknownFrameMessage(args[2]));
+                return;
+            }
+            String active = this.freeframe.getSeasonalRulesService().resolveRuleId(data, System.currentTimeMillis());
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &7Configured rule: &e" + (data.getSeasonRuleId().isEmpty() ? "-" : data.getSeasonRuleId()) + " &7active now: &e" + (active.isEmpty() ? "-" : active)));
+            return;
+        }
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe season <set|clear|info> ..."));
+    }
+
+    private void handleAuction(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe auction <start|stop|info> ..."));
+            return;
+        }
+        String action = args[1].toLowerCase(Locale.ENGLISH);
+        if ("start".equals(action)) {
+            if (args.length < 4) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe auction start <id> <minutes> [minBid]"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            long minutes;
+            try {
+                minutes = Long.parseLong(args[3]);
+            } catch (NumberFormatException exception) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cMinutes must be numeric."));
+                return;
+            }
+            if (minutes <= 0L) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cMinutes must be > 0."));
+                return;
+            }
+            double minBid = data.getPrice();
+            if (args.length >= 5) {
+                try {
+                    minBid = Double.parseDouble(args[4]);
+                } catch (NumberFormatException exception) {
+                    sender.sendMessage(this.freeframe.formatMessage("%prefix% &cMinimum bid must be numeric."));
+                    return;
+                }
+            }
+            this.freeframe.getAuctionService().startAuction(data, minutes * 60_000L, minBid);
+            this.freeframe.getDisplayService().refresh(data);
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aAuction started for &e" + data.getId() + "&a."));
+            this.logAction(sender, "auction-start", data.getId() + " minutes=" + minutes + " minBid=" + minBid);
+            return;
+        }
+        if ("stop".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe auction stop <id>"));
+                return;
+            }
+            FreeFrameData data = this.requireManagedFrame(sender, args[2], true);
+            if (data == null) {
+                return;
+            }
+            this.freeframe.getAuctionService().stopAuction(data);
+            this.freeframe.getDisplayService().refresh(data);
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &aAuction stopped for &e" + data.getId() + "&a."));
+            this.logAction(sender, "auction-stop", data.getId());
+            return;
+        }
+        if ("info".equals(action)) {
+            if (args.length < 3) {
+                sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe auction info <id>"));
+                return;
+            }
+            FreeFrameData data = this.freeframe.getFrameRegistry().findById(args[2]);
+            if (data == null) {
+                sender.sendMessage(this.unknownFrameMessage(args[2]));
+                return;
+            }
+            sender.sendMessage(this.freeframe.formatMessage("%prefix% &7Auction: &e" + this.freeframe.getAuctionService().describe(data)));
+            return;
+        }
+        sender.sendMessage(this.freeframe.formatMessage("%prefix% &cUsage: /freeframe auction <start|stop|info> ..."));
     }
 
     private void handleStats(CommandSender sender, String[] args) {
@@ -575,9 +950,17 @@ public class FreeFrameCommand implements TabExecutor {
                 sender.sendMessage(this.unknownFrameMessage(args[2]));
                 return;
             }
+            if (!this.canManageOrAdmin(sender, data)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return;
+            }
             target = data.getId();
             stats = this.freeframe.getStatisticsService().getFrameStats(target);
         } else if ("player".equals(mode)) {
+            if (!this.hasAdminPermission(sender)) {
+                sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+                return;
+            }
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[2]);
             target = offlinePlayer != null && offlinePlayer.getUniqueId() != null
                 ? offlinePlayer.getUniqueId().toString()
@@ -601,7 +984,7 @@ public class FreeFrameCommand implements TabExecutor {
             return;
         }
         sender.sendMessage(this.freeframe.getMessage("freeframe.backup.created", "%prefix% &aBackup created: &e%file%&a.").replace("%file%", backup.getName()));
-        this.logAdminAction(sender, "backup", backup.getName());
+        this.logAction(sender, "backup", backup.getName());
     }
 
     private void handleRestore(CommandSender sender, String[] args) {
@@ -617,14 +1000,26 @@ public class FreeFrameCommand implements TabExecutor {
 
         this.freeframe.getDisplayService().refreshAll(this.freeframe.getFrameRegistry().listFrames());
         sender.sendMessage(this.freeframe.getMessage("freeframe.backup.restored", "%prefix% &aBackup restored: &e%file%&a.").replace("%file%", args[1]));
-        this.logAdminAction(sender, "restore", args[1]);
+        this.logAction(sender, "restore", args[1]);
     }
 
     private void handleDoctor(CommandSender sender) {
         String result = this.freeframe.getBackupService().runDoctor();
         sender.sendMessage(this.freeframe.formatMessage("%prefix% &aDoctor finished: &e" + result));
         this.freeframe.getDisplayService().refreshAll(this.freeframe.getFrameRegistry().listFrames());
-        this.logAdminAction(sender, "doctor", result);
+        this.logAction(sender, "doctor", result);
+    }
+
+    private void handleReplay(CommandSender sender, String[] args) {
+        boolean dryRun = args.length > 1 && "dry".equalsIgnoreCase(args[1]);
+        JournalReplayReport report = this.freeframe.replayTransactionJournal(dryRun);
+        sender.sendMessage(this.freeframe.formatMessage(
+            "%prefix% &aReplay finished (&e" + (dryRun ? "dry-run" : "apply") + "&a): entries=&e" + report.getTotalEntries()
+                + " &a commits=&e" + report.getPurchaseCommits()
+                + " &a duplicates=&e" + report.getDuplicateCommits()
+                + " &a rebuilt=&e" + report.getRebuiltIdempotencyKeys()
+        ));
+        this.logAction(sender, "replay", "dry=" + dryRun + " entries=" + report.getTotalEntries());
     }
 
     private void handleWand(CommandSender sender) {
@@ -647,7 +1042,7 @@ public class FreeFrameCommand implements TabExecutor {
             "%prefix% &aSetup wand received.",
             player
         ));
-        this.logAdminAction(sender, "wand", "received");
+        this.logAction(sender, "wand", "received");
     }
 
     private void handleExport(CommandSender sender) {
@@ -662,7 +1057,7 @@ public class FreeFrameCommand implements TabExecutor {
         }
 
         sender.sendMessage(this.freeframe.formatMessage("%prefix% &aExported snapshot to &e" + exported.getName() + "&a."));
-        this.logAdminAction(sender, "export", exported.getAbsolutePath());
+        this.logAction(sender, "export", exported.getAbsolutePath());
     }
 
     private void handleStorage(CommandSender sender, String[] args) {
@@ -691,7 +1086,7 @@ public class FreeFrameCommand implements TabExecutor {
         this.freeframe.getDisplayService().refreshAll(this.freeframe.getFrameRegistry().listFrames());
 
         sender.sendMessage(this.freeframe.formatMessage("%prefix% &aStorage backend changed to &e" + requested + "&a."));
-        this.logAdminAction(sender, "storage", requested);
+        this.logAction(sender, "storage", requested);
     }
 
     private void handleDebug(CommandSender sender) {
@@ -701,6 +1096,7 @@ public class FreeFrameCommand implements TabExecutor {
         sender.sendMessage(this.freeframe.getPrefix());
         sender.sendMessage(this.freeframe.colorize("&6Tracked Frames: &e" + registry.size()));
         sender.sendMessage(this.freeframe.colorize("&6Storage Backend: &e" + registry.getActiveStorageBackend()));
+        sender.sendMessage(this.freeframe.colorize("&6Offer Mode: &e" + this.freeframe.getOfferMode().name()));
         sender.sendMessage(this.freeframe.colorize("&6Vault Economy: &e" + this.freeframe.getEconomyService().isAvailable()));
         sender.sendMessage(this.freeframe.colorize("&6PlaceholderAPI: &e" + this.freeframe.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")));
         for (Map.Entry<String, Long> entry : metrics.entrySet()) {
@@ -713,6 +1109,17 @@ public class FreeFrameCommand implements TabExecutor {
         sender.sendMessage(this.freeframe.getPrefix());
         sender.sendMessage(this.freeframe.colorize("&7/freeframe &fhelp &8- &7Show command help"));
         sender.sendMessage(this.freeframe.colorize("&7/freeframe &finfo &8- &7Show plugin information"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fbid <id> <amount> &8- &7Place bid on auction frame"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fmyshops &8- &7List your owned shops"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fsetprice <id> <price> [currency] &8- &7Set frame base price (owner/admin)"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fsetstock <id> <stock> [max] &8- &7Set stock values (owner/admin)"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fsetprofile <id> <slot> <amount> <price> [name] &8- &7Set buy profile (owner/admin)"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fclearprofiles <id> &8- &7Reset buy profiles (owner/admin)"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &flinkchest <id> &8- &7Link looked-at chest (owner/admin)"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fnetwork <set|clear|info> ... &8- &7Manage shop networks"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fseason <set|clear|info> ... &8- &7Manage seasonal rules"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fauction <start|stop|info> ... &8- &7Manage auctions"));
+        sender.sendMessage(this.freeframe.colorize("&7/freeframe &fstats <frame|player> <target> &8- &7Show purchase stats"));
 
         if (sender.hasPermission(this.freeframe.getConfigHandler().getReloadPermissionNode())) {
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &freload &8- &7Reload config and frame cache"));
@@ -722,22 +1129,12 @@ public class FreeFrameCommand implements TabExecutor {
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &flist [page] &8- &7List tracked frames"));
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &finspect <id> &8- &7Inspect frame metadata"));
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &fremove <id> &8- &7Remove tracked frame"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fsetprice <id> <price> [currency] &8- &7Set frame base price"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fsetstock <id> <stock> [max] &8- &7Set stock values"));
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &fsettype <id> <type> &8- &7Set frame type"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fsetprofile <id> <slot> <amount> <price> [name] &8- &7Set a buy profile"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fclearprofiles <id> &8- &7Reset buy profiles"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &flinkchest <id> &8- &7Link looked-at chest/inventory"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fstats <frame|player> <target> &8- &7Show purchase stats"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fbackup &8- &7Create a backup"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &frestore <file> &8- &7Restore a backup"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fdoctor &8- &7Run repair/health checks"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fwand &8- &7Get setup wand"));
+            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fshoptype <id> <admin|user> &8- &7Set admin/user shop type"));
+            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fbackup|restore|doctor|replay &8- &7Recovery and journal tooling"));
             sender.sendMessage(this.freeframe.colorize("&7/freeframe &fstorage <backend> &8- &7Switch YAML/SQLite/MySQL"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fexport &8- &7Export metrics and frame snapshot"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fmigrate &8- &7Run legacy migration"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &frepair &8- &7Repair frame metadata"));
-            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fdebug &8- &7Show runtime metrics"));
+            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fexport|migrate|repair|debug &8- &7Ops tools"));
+            sender.sendMessage(this.freeframe.colorize("&7/freeframe &fwand &8- &7Get setup wand"));
         }
 
         sender.sendMessage(this.freeframe.getPrefix());
@@ -747,12 +1144,38 @@ public class FreeFrameCommand implements TabExecutor {
         sender.sendMessage(this.freeframe.getPrefix());
         sender.sendMessage(this.freeframe.colorize("&6Plugin: &eFreeFrame"));
         sender.sendMessage(this.freeframe.colorize("&6Version: &e" + this.freeframe.getDescription().getVersion()));
-        sender.sendMessage(this.freeframe.colorize("&6Author: &3isolveproblems - https://twitch.tv/FragsNetwork"));
         sender.sendMessage(this.freeframe.colorize("&6Backends: &e" + this.freeframe.getFrameRegistry().getActiveStorageBackend()));
+        sender.sendMessage(this.freeframe.colorize("&6Offer Mode: &e" + this.freeframe.getOfferMode().name()));
         sender.sendMessage(this.freeframe.getPrefix());
     }
 
-    private void logAdminAction(CommandSender sender, String action, String details) {
+    private FreeFrameData requireManagedFrame(CommandSender sender, String id, boolean requireOwnerOrAdmin) {
+        FreeFrameData data = this.freeframe.getFrameRegistry().findById(id);
+        if (data == null) {
+            sender.sendMessage(this.unknownFrameMessage(id));
+            return null;
+        }
+        if (!requireOwnerOrAdmin) {
+            return data;
+        }
+        if (!this.canManageOrAdmin(sender, data)) {
+            sender.sendMessage(this.freeframe.getErrorPermissionMessage());
+            return null;
+        }
+        return data;
+    }
+
+    private boolean canManageOrAdmin(CommandSender sender, FreeFrameData data) {
+        if (this.hasAdminPermission(sender)) {
+            return true;
+        }
+        if (!(sender instanceof Player)) {
+            return false;
+        }
+        return this.freeframe.canPlayerManageFrame((Player) sender, data);
+    }
+
+    private void logAction(CommandSender sender, String action, String details) {
         this.freeframe.getAuditLogger().logAdminAction(sender, action, details);
         this.freeframe.getWebhookExportService().sendAdminAction(sender, action, details);
     }
@@ -854,10 +1277,7 @@ public class FreeFrameCommand implements TabExecutor {
         List<String> parts = new ArrayList<String>();
         String effectiveCurrency = currency == null ? "$" : currency;
         for (PurchaseProfile profile : profiles) {
-            parts.add(
-                "#" + profile.getSlot()
-                    + "=" + profile.getAmount() + "x@" + effectiveCurrency + this.formatPrice(profile.getPrice())
-            );
+            parts.add("#" + profile.getSlot() + "=" + profile.getAmount() + "x@" + effectiveCurrency + this.formatPrice(profile.getPrice()));
         }
         return String.join(", ", parts);
     }

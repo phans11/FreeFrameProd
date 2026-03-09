@@ -4,11 +4,14 @@ import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
 import de.isolveproblems.freeframe.api.PurchaseRequest;
 import de.isolveproblems.freeframe.api.PurchaseResult;
+import de.isolveproblems.freeframe.api.SaleMode;
 import de.isolveproblems.freeframe.economy.EconomyChargeResult;
 import de.isolveproblems.freeframe.inventory.FreeFrameInventoryHolder;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
 import de.isolveproblems.freeframe.utils.InteractionLimiter;
 import de.isolveproblems.freeframe.utils.PurchaseWindowLimiter;
+import de.isolveproblems.freeframe.utils.SignedPurchaseToken;
+import de.isolveproblems.freeframe.utils.TaxBreakdown;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -75,6 +78,11 @@ public class FrameInventoryListener implements Listener {
                 "%prefix% &cThis FreeFrame is currently inactive.",
                 player
             ));
+            return;
+        }
+
+        if (frameData.getSaleMode() == SaleMode.AUCTION) {
+            player.sendMessage(this.freeframe.formatMessage("%prefix% &eAuction status: &f" + this.freeframe.getAuctionService().describe(frameData), player));
             return;
         }
 
@@ -167,6 +175,7 @@ public class FrameInventoryListener implements Listener {
 
             if (result.getStatus() == PurchaseResult.Status.BLOCKED || result.getStatus() == PurchaseResult.Status.ERROR) {
                 player.sendMessage(this.freeframe.getMessage(result.getMessagePath(), result.getFallbackMessage(), player));
+                this.freeframe.getAlertService().alertPurchaseFailure(frameData.getId(), result.getStatus().name());
                 return;
             }
 
@@ -176,16 +185,31 @@ public class FrameInventoryListener implements Listener {
             }
 
             int amount = Math.max(1, result.getPurchasedAmount());
-            double price = Math.max(0.0D, result.getFinalPrice());
+            double grossPrice = Math.max(0.0D, result.getFinalPrice());
             String currency = this.resolveCurrency(frameData.getCurrency(), holder.getCurrency());
 
-            boolean charged = this.chargePlayer(player, price, currency);
-            if (price > 0.0D && !charged) {
+            SignedPurchaseToken token = this.freeframe.getPurchaseSecurityService().createToken(player, frameData, profile, grossPrice);
+            if (!this.freeframe.getPurchaseSecurityService().verify(token)) {
+                this.freeframe.getAlertService().alertPurchaseFailure(frameData.getId(), "invalid-signature");
+                player.sendMessage(this.freeframe.getMessage("freeframe.security.invalid", "%prefix% &cTransaction signature invalid.", player));
+                return;
+            }
+            if (this.freeframe.getPurchaseSecurityService().isCommitted(token.getTxId())) {
+                player.sendMessage(this.freeframe.getMessage("freeframe.security.duplicate", "%prefix% &eDuplicate purchase blocked.", player));
+                return;
+            }
+            if (!this.freeframe.getPluginConfig().getBoolean("freeframe.gui.dropOnFullInventory", true)
+                && !this.canFit(player, templateItem, amount)) {
+                player.sendMessage(this.freeframe.getMessage("freeframe.purchase.inventoryFull", "%prefix% &cYour inventory is full.", player));
                 return;
             }
 
-            if (!frameData.consumeStock(amount)) {
+            Double seasonalTaxOverride = this.freeframe.getSeasonalRulesService().resolveTaxOverridePercent(frameData, System.currentTimeMillis());
+            TaxBreakdown breakdown = this.freeframe.getTaxService().calculate(frameData, grossPrice, seasonalTaxOverride);
+            boolean consumed = this.freeframe.getShopNetworkService().consumeStock(frameData, amount);
+            if (!consumed) {
                 this.freeframe.getMetricsTracker().incrementStockOutHits();
+                this.freeframe.getAlertService().alertPurchaseFailure(frameData.getId(), "network-stock-race");
                 player.sendMessage(this.freeframe.getMessage(
                     "freeframe.purchase.stockOut",
                     "%prefix% &cThis frame is out of stock.",
@@ -194,21 +218,38 @@ public class FrameInventoryListener implements Listener {
                 return;
             }
 
+            boolean charged = this.chargePlayer(player, breakdown.getGross(), currency);
+            if (breakdown.getGross() > 0.0D && !charged) {
+                this.freeframe.getShopNetworkService().restoreStock(frameData, amount);
+                this.freeframe.getTransactionJournalService().logPurchaseCommit(
+                    token.getTxId(), player, frameData, amount, breakdown.getGross(), breakdown.getTax(), breakdown.getNet(), "charge_failed", token.getSignature()
+                );
+                return;
+            }
+
             this.giveItem(player, templateItem, amount);
             frameData.setCurrency(currency);
 
-            if (price > 0.0D && charged) {
-                frameData.addRevenue(price);
-                this.payOwner(player, frameData, price);
+            if (breakdown.getGross() > 0.0D && charged) {
+                frameData.addRevenue(breakdown.getNet());
+                frameData.addCollectedTax(breakdown.getTax());
+                this.payOwner(player, frameData, breakdown.getNet());
+                this.freeframe.getTaxService().depositTax(breakdown.getTax());
             }
 
             this.freeframe.getMetricsTracker().incrementPurchases();
-            this.freeframe.getStatisticsService().recordPurchase(player, frameData, amount, price);
-            this.freeframe.getWebhookExportService().sendPurchase(player, frameData, amount, price, price > 0.0D ? "charged" : "free");
-            this.sendSuccessMessage(player, amount, price, currency);
-            this.freeframe.getAuditLogger().logPurchase(player, frameData, amount, price, price > 0.0D ? "charged" : "free");
+            this.freeframe.getStatisticsService().recordPurchase(player, frameData, amount, breakdown.getGross());
+            this.freeframe.getDynamicPricingService().recordPurchase(frameData, System.currentTimeMillis());
+            this.freeframe.getPurchaseSecurityService().markCommitted(token.getTxId());
+            this.freeframe.getTransactionJournalService().logPurchaseCommit(
+                token.getTxId(), player, frameData, amount, breakdown.getGross(), breakdown.getTax(), breakdown.getNet(), "success", token.getSignature()
+            );
+            this.freeframe.getWebhookExportService().sendPurchase(player, frameData, amount, breakdown.getGross(), breakdown.getGross() > 0.0D ? "charged" : "free");
+            this.sendSuccessMessage(player, amount, breakdown.getGross(), breakdown.getTax(), currency);
+            this.freeframe.getAuditLogger().logPurchase(player, frameData, amount, breakdown.getGross(), breakdown.getGross() > 0.0D ? "charged" : "free");
             this.freeframe.getDisplayService().refresh(frameData);
             this.freeframe.getFrameRegistry().saveToConfig();
+            this.freeframe.getAlertService().alertLowStock(frameData);
 
             if (this.freeframe.getPluginConfig().getBoolean("freeframe.gui.closeAfterPurchase", false)) {
                 player.closeInventory();
@@ -279,7 +320,7 @@ public class FrameInventoryListener implements Listener {
         return true;
     }
 
-    private void payOwner(Player buyer, FreeFrameData frameData, double price) {
+    private void payOwner(Player buyer, FreeFrameData frameData, double amount) {
         boolean payOwnerOnSelf = this.freeframe.getPluginConfig().getBoolean("freeframe.economy.payOwnerOnSelfPurchase", false);
         if (!this.freeframe.getPluginConfig().getBoolean("freeframe.economy.payOwner", true)) {
             return;
@@ -292,7 +333,7 @@ public class FrameInventoryListener implements Listener {
         EconomyChargeResult payoutResult = this.freeframe.getEconomyService().depositToOwner(
             frameData.getOwnerUuid(),
             frameData.getOwnerName(),
-            price
+            amount
         );
         if (payoutResult.getStatus() == EconomyChargeResult.Status.SUCCESS) {
             this.freeframe.getMetricsTracker().incrementOwnerPayouts();
@@ -338,17 +379,18 @@ public class FrameInventoryListener implements Listener {
         ));
     }
 
-    private void sendSuccessMessage(Player player, int amount, double price, String currency) {
+    private void sendSuccessMessage(Player player, int amount, double gross, double tax, String currency) {
         Map<String, String> tokens = new HashMap<String, String>();
         tokens.put("%amount%", String.valueOf(amount));
-        tokens.put("%price%", this.formatPrice(price));
+        tokens.put("%price%", this.formatPrice(gross));
         tokens.put("%currency%", currency);
+        tokens.put("%tax%", this.formatPrice(tax));
 
-        if (price > 0.0D) {
+        if (gross > 0.0D) {
             this.sendTemplatedMessage(
                 player,
                 "freeframe.purchase.success",
-                "%prefix% &aPurchased &e%amount%x &afor &e%currency%%price%&a.",
+                "%prefix% &aPurchased &e%amount%x &afor &e%currency%%price%&a (&7tax %currency%%tax%&a).",
                 tokens
             );
             return;
@@ -389,6 +431,32 @@ public class FrameInventoryListener implements Listener {
 
     private boolean isAir(Material material) {
         return material == null || "AIR".equals(material.name());
+    }
+
+    private boolean canFit(Player player, ItemStack template, int amount) {
+        if (player == null || template == null || amount <= 0) {
+            return false;
+        }
+
+        ItemStack probe = template.clone();
+        int maxStackSize = Math.max(1, probe.getMaxStackSize());
+        int remaining = amount;
+
+        ItemStack[] contents = player.getInventory().getContents();
+        for (ItemStack content : contents) {
+            if (remaining <= 0) {
+                return true;
+            }
+            if (content == null || content.getType() == null || "AIR".equals(content.getType().name())) {
+                remaining -= Math.min(maxStackSize, remaining);
+                continue;
+            }
+            if (content.isSimilar(probe) && content.getAmount() < maxStackSize) {
+                int free = maxStackSize - content.getAmount();
+                remaining -= Math.min(free, remaining);
+            }
+        }
+        return remaining <= 0;
     }
 
     private String formatPrice(double price) {

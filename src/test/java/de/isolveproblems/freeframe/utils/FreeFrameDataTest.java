@@ -2,6 +2,8 @@ package de.isolveproblems.freeframe.utils;
 
 import de.isolveproblems.freeframe.api.FrameType;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
+import de.isolveproblems.freeframe.api.SaleMode;
+import de.isolveproblems.freeframe.api.ShopOwnerType;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
@@ -39,7 +41,17 @@ class FreeFrameDataTest {
             Arrays.asList(
                 new PurchaseProfile(2, 1, 19.99D, "&aSingle"),
                 new PurchaseProfile(4, 16, 299.99D, "&bBulk")
-            )
+            ),
+            ShopOwnerType.ADMIN,
+            "market-a",
+            "spring",
+            SaleMode.AUCTION,
+            123456999L,
+            5.0D,
+            25.0D,
+            "bidder-uuid",
+            "Bidder",
+            3.5D
         );
 
         YamlConfiguration configuration = new YamlConfiguration();
@@ -66,6 +78,13 @@ class FreeFrameDataTest {
         assertEquals(new BlockReference("world", 5, 65, 6), restored.getLinkedChest());
         assertEquals(2, restored.getPurchaseProfiles().size());
         assertEquals(16, restored.findProfileBySlot(4).getAmount());
+        assertEquals(ShopOwnerType.ADMIN, restored.getShopOwnerType());
+        assertEquals("market-a", restored.getNetworkId());
+        assertEquals("spring", restored.getSeasonRuleId());
+        assertEquals(SaleMode.AUCTION, restored.getSaleMode());
+        assertEquals(25.0D, restored.getHighestBid());
+        assertEquals("Bidder", restored.getHighestBidderName());
+        assertEquals(3.5D, restored.getCollectedTaxTotal());
     }
 
     @Test

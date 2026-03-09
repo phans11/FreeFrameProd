@@ -7,6 +7,7 @@ import de.isolveproblems.freeframe.api.FrameType;
 import de.isolveproblems.freeframe.api.PurchaseProcessor;
 import de.isolveproblems.freeframe.api.PurchaseRequest;
 import de.isolveproblems.freeframe.api.PurchaseResult;
+import de.isolveproblems.freeframe.api.SaleMode;
 import de.isolveproblems.freeframe.api.StatisticsService;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -48,6 +49,10 @@ public class DefaultPurchaseProcessor implements PurchaseProcessor {
             return PurchaseResult.blocked("freeframe.restrictions.denied", "%prefix% &cFreeFrame is disabled in this world/region.");
         }
 
+        if (!this.freeframe.isShopTypeOffered(frameData)) {
+            return PurchaseResult.blocked("freeframe.shops.offerFiltered", "%prefix% &cThis shop type is currently disabled.");
+        }
+
         FrameType frameType = frameData.getFrameType();
         if (frameType == FrameType.ADMIN_ONLY && !player.hasPermission(this.freeframe.getPluginConfig().getString("freeframe.types.adminOnlyPermission", "freeframe.adminonly"))) {
             return PurchaseResult.blocked("freeframe.types.adminOnlyDenied", "%prefix% &cThis frame is restricted to admins.");
@@ -57,16 +62,25 @@ public class DefaultPurchaseProcessor implements PurchaseProcessor {
             return PurchaseResult.preview("freeframe.types.previewOnly", "%prefix% &7Preview only. No item was granted.");
         }
 
-        int amount = request.getProfile().getAmount();
-        if (this.freeframe.getPluginConfig().getBoolean("freeframe.chestRestock.enabled", true) && frameData.getStock() < amount) {
-            this.chestRestockService.restock(frameData, template);
+        if (frameData.getSaleMode() == SaleMode.AUCTION) {
+            return PurchaseResult.blocked("freeframe.auction.useBid", "%prefix% &eThis frame is in auction mode. Use /freeframe bid <id> <amount>.");
         }
 
-        if (frameData.getStock() < amount) {
+        int amount = request.getProfile().getAmount();
+        int availableStock = this.freeframe.getShopNetworkService().getAvailableStock(frameData);
+        if (this.freeframe.getPluginConfig().getBoolean("freeframe.chestRestock.enabled", true) && availableStock < amount) {
+            this.chestRestockService.restock(frameData, template);
+            availableStock = this.freeframe.getShopNetworkService().getAvailableStock(frameData);
+        }
+
+        if (availableStock < amount) {
             return PurchaseResult.blocked("freeframe.purchase.stockOut", "%prefix% &cThis frame is out of stock.");
         }
 
         double price = frameType == FrameType.FREE ? 0.0D : request.getProfile().getPrice();
+        long now = System.currentTimeMillis();
+        price = this.freeframe.getSeasonalRulesService().applyPriceMultiplier(frameData, price, now);
+        price = this.freeframe.getDynamicPricingService().apply(frameData, price, availableStock, Math.max(1, frameData.getMaxStock()), now);
         double finalPrice = this.discountService.applyDiscount(player, frameData, price);
         return PurchaseResult.success("freeframe.purchase.success", "%prefix% &aPurchase completed.", finalPrice, amount);
     }

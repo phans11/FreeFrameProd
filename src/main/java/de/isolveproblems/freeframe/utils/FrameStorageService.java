@@ -3,6 +3,9 @@ package de.isolveproblems.freeframe.utils;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.FrameType;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
+import de.isolveproblems.freeframe.api.SaleMode;
+import de.isolveproblems.freeframe.api.ShopOwnerType;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -29,6 +32,9 @@ public class FrameStorageService {
     }
 
     private final FreeFrame freeframe;
+    private final Object asyncLock = new Object();
+    private List<FreeFrameData> queuedSnapshot;
+    private boolean workerScheduled;
 
     public FrameStorageService(FreeFrame freeframe) {
         this.freeframe = freeframe;
@@ -72,9 +78,63 @@ public class FrameStorageService {
             return;
         }
 
-        if (!this.saveToDatabase(type, frames)) {
-            this.freeframe.getLogger().warning("Database save failed, writing frames to YAML fallback.");
-            this.saveToYaml(frames);
+        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.storage.asyncQueue.enabled", true)) {
+            if (!this.saveToDatabase(type, frames)) {
+                this.freeframe.getLogger().warning("Database save failed, writing frames to YAML fallback.");
+                this.saveToYaml(frames);
+            }
+            return;
+        }
+
+        synchronized (this.asyncLock) {
+            this.queuedSnapshot = this.deepCopy(frames);
+            if (!this.workerScheduled) {
+                this.workerScheduled = true;
+                Bukkit.getScheduler().runTaskAsynchronously(this.freeframe, new Runnable() {
+                    @Override
+                    public void run() {
+                        processQueue();
+                    }
+                });
+            }
+        }
+    }
+
+    public void flushAndShutdown() {
+        StorageType type = this.resolveType();
+        if (type == StorageType.YAML) {
+            return;
+        }
+
+        List<FreeFrameData> pending;
+        synchronized (this.asyncLock) {
+            pending = this.queuedSnapshot;
+            this.queuedSnapshot = null;
+            this.workerScheduled = false;
+        }
+
+        if (pending != null && !pending.isEmpty()) {
+            this.saveToDatabase(type, pending);
+        }
+    }
+
+    private void processQueue() {
+        while (true) {
+            List<FreeFrameData> snapshot;
+            synchronized (this.asyncLock) {
+                snapshot = this.queuedSnapshot;
+                this.queuedSnapshot = null;
+                if (snapshot == null || snapshot.isEmpty()) {
+                    this.workerScheduled = false;
+                    return;
+                }
+            }
+
+            StorageType type = this.resolveType();
+            if (!this.saveToDatabase(type, snapshot)) {
+                this.freeframe.getLogger().warning("Async database save failed, writing YAML fallback.");
+                this.saveToYaml(snapshot);
+            }
         }
     }
 
@@ -98,9 +158,14 @@ public class FrameStorageService {
         this.freeframe.getPluginConfig().set(FRAMES_DATA_PATH, null);
         ConfigurationSection root = this.freeframe.getPluginConfig().createSection(FRAMES_DATA_PATH);
 
-        for (FreeFrameData data : frames) {
-            ConfigurationSection frameSection = root.createSection(data.getId());
-            data.writeToSection(frameSection);
+        if (frames != null) {
+            for (FreeFrameData data : frames) {
+                if (data == null) {
+                    continue;
+                }
+                ConfigurationSection frameSection = root.createSection(data.getId());
+                data.writeToSection(frameSection);
+            }
         }
 
         this.freeframe.getConfigHandler().getConfigApi().saveConfig();
@@ -115,7 +180,9 @@ public class FrameStorageService {
 
             String query = "SELECT id,reference,owner_uuid,owner_name,created_at,item_type,price,currency,active,"
                 + "stock,max_stock,auto_refill,refill_interval,last_refill,revenue_total,display_entity_uuid,"
-                + "frame_type,linked_chest,profiles_text "
+                + "frame_type,linked_chest,profiles_text,shop_owner_type,network_id,season_rule_id,sale_mode,"
+                + "auction_end_at,auction_min_bid,auction_highest_bid,auction_highest_bidder_uuid,"
+                + "auction_highest_bidder_name,collected_tax_total "
                 + "FROM " + table;
 
             try (PreparedStatement statement = connection.prepareStatement(query);
@@ -147,7 +214,17 @@ public class FrameStorageService {
                         resultSet.getString("display_entity_uuid"),
                         FrameType.fromString(resultSet.getString("frame_type")),
                         BlockReference.parse(resultSet.getString("linked_chest")),
-                        this.deserializeProfiles(resultSet.getString("profiles_text"))
+                        this.deserializeProfiles(resultSet.getString("profiles_text")),
+                        ShopOwnerType.fromString(resultSet.getString("shop_owner_type")),
+                        resultSet.getString("network_id"),
+                        resultSet.getString("season_rule_id"),
+                        SaleMode.fromString(resultSet.getString("sale_mode")),
+                        resultSet.getLong("auction_end_at"),
+                        resultSet.getDouble("auction_min_bid"),
+                        resultSet.getDouble("auction_highest_bid"),
+                        resultSet.getString("auction_highest_bidder_uuid"),
+                        resultSet.getString("auction_highest_bidder_name"),
+                        resultSet.getDouble("collected_tax_total")
                     );
                     loaded.put(data.getId(), data);
                 }
@@ -172,31 +249,49 @@ public class FrameStorageService {
             String insert = "INSERT INTO " + table + " ("
                 + "id,reference,owner_uuid,owner_name,created_at,item_type,price,currency,active,"
                 + "stock,max_stock,auto_refill,refill_interval,last_refill,revenue_total,display_entity_uuid,"
-                + "frame_type,linked_chest,profiles_text"
-                + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                + "frame_type,linked_chest,profiles_text,shop_owner_type,network_id,season_rule_id,sale_mode,"
+                + "auction_end_at,auction_min_bid,auction_highest_bid,auction_highest_bidder_uuid,"
+                + "auction_highest_bidder_name,collected_tax_total"
+                + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
             try (PreparedStatement statement = connection.prepareStatement(insert)) {
-                for (FreeFrameData data : frames) {
-                    statement.setString(1, data.getId());
-                    statement.setString(2, data.getReference().serialize());
-                    statement.setString(3, data.getOwnerUuid());
-                    statement.setString(4, data.getOwnerName());
-                    statement.setLong(5, data.getCreatedAt());
-                    statement.setString(6, data.getItemType());
-                    statement.setDouble(7, data.getPrice());
-                    statement.setString(8, data.getCurrency());
-                    statement.setBoolean(9, data.isActive());
-                    statement.setInt(10, data.getStock());
-                    statement.setInt(11, data.getMaxStock());
-                    statement.setBoolean(12, data.isAutoRefill());
-                    statement.setLong(13, data.getRefillIntervalMillis());
-                    statement.setLong(14, data.getLastRefillAt());
-                    statement.setDouble(15, data.getRevenueTotal());
-                    statement.setString(16, data.getDisplayEntityUuid());
-                    statement.setString(17, data.getFrameType().name());
-                    statement.setString(18, data.getLinkedChest() == null ? "" : data.getLinkedChest().serialize());
-                    statement.setString(19, this.serializeProfiles(data.getPurchaseProfiles()));
-                    statement.addBatch();
+                if (frames != null) {
+                    for (FreeFrameData data : frames) {
+                        if (data == null) {
+                            continue;
+                        }
+
+                        statement.setString(1, data.getId());
+                        statement.setString(2, data.getReference().serialize());
+                        statement.setString(3, data.getOwnerUuid());
+                        statement.setString(4, data.getOwnerName());
+                        statement.setLong(5, data.getCreatedAt());
+                        statement.setString(6, data.getItemType());
+                        statement.setDouble(7, data.getPrice());
+                        statement.setString(8, data.getCurrency());
+                        statement.setBoolean(9, data.isActive());
+                        statement.setInt(10, data.getStock());
+                        statement.setInt(11, data.getMaxStock());
+                        statement.setBoolean(12, data.isAutoRefill());
+                        statement.setLong(13, data.getRefillIntervalMillis());
+                        statement.setLong(14, data.getLastRefillAt());
+                        statement.setDouble(15, data.getRevenueTotal());
+                        statement.setString(16, data.getDisplayEntityUuid());
+                        statement.setString(17, data.getFrameType().name());
+                        statement.setString(18, data.getLinkedChest() == null ? "" : data.getLinkedChest().serialize());
+                        statement.setString(19, this.serializeProfiles(data.getPurchaseProfiles()));
+                        statement.setString(20, data.getShopOwnerType().name());
+                        statement.setString(21, data.getNetworkId());
+                        statement.setString(22, data.getSeasonRuleId());
+                        statement.setString(23, data.getSaleMode().name());
+                        statement.setLong(24, data.getAuctionEndAt());
+                        statement.setDouble(25, data.getAuctionMinBid());
+                        statement.setDouble(26, data.getHighestBid());
+                        statement.setString(27, data.getHighestBidderUuid());
+                        statement.setString(28, data.getHighestBidderName());
+                        statement.setDouble(29, data.getCollectedTaxTotal());
+                        statement.addBatch();
+                    }
                 }
                 statement.executeBatch();
             }
@@ -232,7 +327,17 @@ public class FrameStorageService {
                 + "display_entity_uuid VARCHAR(64) NOT NULL,"
                 + "frame_type VARCHAR(32) NOT NULL DEFAULT 'SHOP',"
                 + "linked_chest VARCHAR(255) NOT NULL DEFAULT '',"
-                + "profiles_text LONGTEXT"
+                + "profiles_text LONGTEXT,"
+                + "shop_owner_type VARCHAR(16) NOT NULL DEFAULT 'USER',"
+                + "network_id VARCHAR(64) NOT NULL DEFAULT '',"
+                + "season_rule_id VARCHAR(64) NOT NULL DEFAULT '',"
+                + "sale_mode VARCHAR(16) NOT NULL DEFAULT 'INSTANT',"
+                + "auction_end_at BIGINT NOT NULL DEFAULT 0,"
+                + "auction_min_bid DOUBLE NOT NULL DEFAULT 0,"
+                + "auction_highest_bid DOUBLE NOT NULL DEFAULT 0,"
+                + "auction_highest_bidder_uuid VARCHAR(64) NOT NULL DEFAULT '',"
+                + "auction_highest_bidder_name VARCHAR(64) NOT NULL DEFAULT '',"
+                + "collected_tax_total DOUBLE NOT NULL DEFAULT 0"
                 + ")";
         } else {
             create = "CREATE TABLE IF NOT EXISTS " + table + " ("
@@ -254,7 +359,17 @@ public class FrameStorageService {
                 + "display_entity_uuid TEXT NOT NULL,"
                 + "frame_type TEXT NOT NULL DEFAULT 'SHOP',"
                 + "linked_chest TEXT NOT NULL DEFAULT '',"
-                + "profiles_text TEXT"
+                + "profiles_text TEXT,"
+                + "shop_owner_type TEXT NOT NULL DEFAULT 'USER',"
+                + "network_id TEXT NOT NULL DEFAULT '',"
+                + "season_rule_id TEXT NOT NULL DEFAULT '',"
+                + "sale_mode TEXT NOT NULL DEFAULT 'INSTANT',"
+                + "auction_end_at INTEGER NOT NULL DEFAULT 0,"
+                + "auction_min_bid REAL NOT NULL DEFAULT 0,"
+                + "auction_highest_bid REAL NOT NULL DEFAULT 0,"
+                + "auction_highest_bidder_uuid TEXT NOT NULL DEFAULT '',"
+                + "auction_highest_bidder_name TEXT NOT NULL DEFAULT '',"
+                + "collected_tax_total REAL NOT NULL DEFAULT 0"
                 + ")";
         }
 
@@ -265,13 +380,23 @@ public class FrameStorageService {
         this.ensureColumn(connection, table, "frame_type", type == StorageType.MYSQL ? "VARCHAR(32) NOT NULL DEFAULT 'SHOP'" : "TEXT NOT NULL DEFAULT 'SHOP'");
         this.ensureColumn(connection, table, "linked_chest", type == StorageType.MYSQL ? "VARCHAR(255) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''");
         this.ensureColumn(connection, table, "profiles_text", type == StorageType.MYSQL ? "LONGTEXT" : "TEXT");
+        this.ensureColumn(connection, table, "shop_owner_type", type == StorageType.MYSQL ? "VARCHAR(16) NOT NULL DEFAULT 'USER'" : "TEXT NOT NULL DEFAULT 'USER'");
+        this.ensureColumn(connection, table, "network_id", type == StorageType.MYSQL ? "VARCHAR(64) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''");
+        this.ensureColumn(connection, table, "season_rule_id", type == StorageType.MYSQL ? "VARCHAR(64) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''");
+        this.ensureColumn(connection, table, "sale_mode", type == StorageType.MYSQL ? "VARCHAR(16) NOT NULL DEFAULT 'INSTANT'" : "TEXT NOT NULL DEFAULT 'INSTANT'");
+        this.ensureColumn(connection, table, "auction_end_at", type == StorageType.MYSQL ? "BIGINT NOT NULL DEFAULT 0" : "INTEGER NOT NULL DEFAULT 0");
+        this.ensureColumn(connection, table, "auction_min_bid", type == StorageType.MYSQL ? "DOUBLE NOT NULL DEFAULT 0" : "REAL NOT NULL DEFAULT 0");
+        this.ensureColumn(connection, table, "auction_highest_bid", type == StorageType.MYSQL ? "DOUBLE NOT NULL DEFAULT 0" : "REAL NOT NULL DEFAULT 0");
+        this.ensureColumn(connection, table, "auction_highest_bidder_uuid", type == StorageType.MYSQL ? "VARCHAR(64) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''");
+        this.ensureColumn(connection, table, "auction_highest_bidder_name", type == StorageType.MYSQL ? "VARCHAR(64) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''");
+        this.ensureColumn(connection, table, "collected_tax_total", type == StorageType.MYSQL ? "DOUBLE NOT NULL DEFAULT 0" : "REAL NOT NULL DEFAULT 0");
     }
 
     private void ensureColumn(Connection connection, String table, String column, String definition) {
         try (Statement statement = connection.createStatement()) {
             statement.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
         } catch (Exception ignored) {
-            // Column already exists or backend does not require the migration.
+            // Column already exists or backend does not require migration.
         }
     }
 
@@ -373,5 +498,19 @@ public class FrameStorageService {
             ));
         }
         return profiles;
+    }
+
+    private List<FreeFrameData> deepCopy(List<FreeFrameData> frames) {
+        List<FreeFrameData> copy = new ArrayList<FreeFrameData>();
+        if (frames == null) {
+            return copy;
+        }
+
+        for (FreeFrameData frame : frames) {
+            if (frame != null) {
+                copy.add(frame.copy());
+            }
+        }
+        return copy;
     }
 }

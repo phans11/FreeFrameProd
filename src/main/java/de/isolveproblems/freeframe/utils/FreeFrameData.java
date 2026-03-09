@@ -2,6 +2,8 @@ package de.isolveproblems.freeframe.utils;
 
 import de.isolveproblems.freeframe.api.FrameType;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
+import de.isolveproblems.freeframe.api.SaleMode;
+import de.isolveproblems.freeframe.api.ShopOwnerType;
 import org.bukkit.configuration.ConfigurationSection;
 
 import java.util.ArrayList;
@@ -29,18 +31,33 @@ public class FreeFrameData {
     private FrameType frameType;
     private BlockReference linkedChest;
     private final List<PurchaseProfile> purchaseProfiles;
+    private ShopOwnerType shopOwnerType;
+    private String networkId;
+    private String seasonRuleId;
+    private SaleMode saleMode;
+    private long auctionEndAt;
+    private double auctionMinBid;
+    private double highestBid;
+    private String highestBidderUuid;
+    private String highestBidderName;
+    private double collectedTaxTotal;
 
     public FreeFrameData(String id, FrameReference reference, String ownerUuid, String ownerName, long createdAt,
                          String itemType, double price, String currency, boolean active) {
         this(id, reference, ownerUuid, ownerName, createdAt, itemType, price, currency, active,
-            64, 64, false, 300_000L, System.currentTimeMillis(), 0.0D, "", FrameType.SHOP, null, new ArrayList<PurchaseProfile>());
+            64, 64, false, 300_000L, System.currentTimeMillis(), 0.0D, "", FrameType.SHOP, null,
+            new ArrayList<PurchaseProfile>(), ShopOwnerType.USER, "", "", SaleMode.INSTANT,
+            0L, 0.0D, 0.0D, "", "", 0.0D);
     }
 
     public FreeFrameData(String id, FrameReference reference, String ownerUuid, String ownerName, long createdAt,
                          String itemType, double price, String currency, boolean active,
                          int stock, int maxStock, boolean autoRefill, long refillIntervalMillis,
                          long lastRefillAt, double revenueTotal, String displayEntityUuid,
-                         FrameType frameType, BlockReference linkedChest, List<PurchaseProfile> purchaseProfiles) {
+                         FrameType frameType, BlockReference linkedChest, List<PurchaseProfile> purchaseProfiles,
+                         ShopOwnerType shopOwnerType, String networkId, String seasonRuleId, SaleMode saleMode,
+                         long auctionEndAt, double auctionMinBid, double highestBid, String highestBidderUuid,
+                         String highestBidderName, double collectedTaxTotal) {
         this.id = id;
         this.reference = reference;
         this.ownerUuid = ownerUuid;
@@ -61,6 +78,16 @@ public class FreeFrameData {
         this.linkedChest = linkedChest;
         this.purchaseProfiles = new ArrayList<PurchaseProfile>();
         this.setPurchaseProfiles(purchaseProfiles);
+        this.shopOwnerType = shopOwnerType == null ? ShopOwnerType.USER : shopOwnerType;
+        this.networkId = networkId == null ? "" : networkId.trim().toLowerCase(java.util.Locale.ENGLISH);
+        this.seasonRuleId = seasonRuleId == null ? "" : seasonRuleId.trim().toLowerCase(java.util.Locale.ENGLISH);
+        this.saleMode = saleMode == null ? SaleMode.INSTANT : saleMode;
+        this.auctionEndAt = Math.max(0L, auctionEndAt);
+        this.auctionMinBid = Math.max(0.0D, auctionMinBid);
+        this.highestBid = Math.max(0.0D, highestBid);
+        this.highestBidderUuid = highestBidderUuid == null ? "" : highestBidderUuid;
+        this.highestBidderName = highestBidderName == null ? "" : highestBidderName;
+        this.collectedTaxTotal = Math.max(0.0D, collectedTaxTotal);
 
         if (this.stock > this.maxStock) {
             this.stock = this.maxStock;
@@ -99,7 +126,17 @@ public class FreeFrameData {
             section.getString("displayEntityUuid", ""),
             FrameType.fromString(section.getString("frameType", "SHOP")),
             BlockReference.parse(section.getString("linkedChest", "")),
-            readPurchaseProfiles(section.getConfigurationSection("profiles"))
+            readPurchaseProfiles(section.getConfigurationSection("profiles")),
+            ShopOwnerType.fromString(section.getString("shopOwnerType", "USER")),
+            section.getString("networkId", ""),
+            section.getString("seasonRuleId", ""),
+            SaleMode.fromString(section.getString("saleMode", "INSTANT")),
+            section.getLong("auction.endAt", 0L),
+            Math.max(0.0D, section.getDouble("auction.minBid", 0.0D)),
+            Math.max(0.0D, section.getDouble("auction.highestBid", 0.0D)),
+            section.getString("auction.highestBidderUuid", ""),
+            section.getString("auction.highestBidderName", ""),
+            Math.max(0.0D, section.getDouble("tax.collectedTotal", 0.0D))
         );
     }
 
@@ -121,6 +158,16 @@ public class FreeFrameData {
         section.set("displayEntityUuid", this.displayEntityUuid == null ? "" : this.displayEntityUuid);
         section.set("frameType", this.frameType.name());
         section.set("linkedChest", this.linkedChest == null ? "" : this.linkedChest.serialize());
+        section.set("shopOwnerType", this.shopOwnerType.name());
+        section.set("networkId", this.networkId);
+        section.set("seasonRuleId", this.seasonRuleId);
+        section.set("saleMode", this.saleMode.name());
+        section.set("auction.endAt", this.auctionEndAt);
+        section.set("auction.minBid", this.auctionMinBid);
+        section.set("auction.highestBid", this.highestBid);
+        section.set("auction.highestBidderUuid", this.highestBidderUuid);
+        section.set("auction.highestBidderName", this.highestBidderName);
+        section.set("tax.collectedTotal", this.collectedTaxTotal);
         section.set("profiles", null);
         ConfigurationSection profilesSection = section.createSection("profiles");
         int index = 0;
@@ -131,6 +178,51 @@ public class FreeFrameData {
             entry.set("price", profile.getPrice());
             entry.set("displayName", profile.getDisplayName());
         }
+    }
+
+    public FreeFrameData copy() {
+        return new FreeFrameData(
+            this.id,
+            this.reference == null ? null : new FrameReference(
+                this.reference.getWorldName(),
+                this.reference.getX(),
+                this.reference.getY(),
+                this.reference.getZ(),
+                this.reference.getAttachedFace()
+            ),
+            this.ownerUuid,
+            this.ownerName,
+            this.createdAt,
+            this.itemType,
+            this.price,
+            this.currency,
+            this.active,
+            this.stock,
+            this.maxStock,
+            this.autoRefill,
+            this.refillIntervalMillis,
+            this.lastRefillAt,
+            this.revenueTotal,
+            this.displayEntityUuid,
+            this.frameType,
+            this.linkedChest == null ? null : new BlockReference(
+                this.linkedChest.getWorldName(),
+                this.linkedChest.getX(),
+                this.linkedChest.getY(),
+                this.linkedChest.getZ()
+            ),
+            new ArrayList<PurchaseProfile>(this.purchaseProfiles),
+            this.shopOwnerType,
+            this.networkId,
+            this.seasonRuleId,
+            this.saleMode,
+            this.auctionEndAt,
+            this.auctionMinBid,
+            this.highestBid,
+            this.highestBidderUuid,
+            this.highestBidderName,
+            this.collectedTaxTotal
+        );
     }
 
     public boolean applyAutoRefillIfDue(long now) {
@@ -161,6 +253,39 @@ public class FreeFrameData {
         if (amount > 0.0D) {
             this.revenueTotal += amount;
         }
+    }
+
+    public void addCollectedTax(double amount) {
+        if (amount > 0.0D) {
+            this.collectedTaxTotal += amount;
+        }
+    }
+
+    public boolean isAuctionActive(long now) {
+        return this.saleMode == SaleMode.AUCTION && this.auctionEndAt > now;
+    }
+
+    public boolean isAuctionFinished(long now) {
+        return this.saleMode == SaleMode.AUCTION && this.auctionEndAt > 0L && this.auctionEndAt <= now;
+    }
+
+    public boolean placeBid(String bidderUuid, String bidderName, double bidAmount) {
+        if (bidAmount < Math.max(this.auctionMinBid, this.highestBid + 0.01D)) {
+            return false;
+        }
+
+        this.highestBid = bidAmount;
+        this.highestBidderUuid = bidderUuid == null ? "" : bidderUuid;
+        this.highestBidderName = bidderName == null ? "" : bidderName;
+        return true;
+    }
+
+    public void clearAuctionState() {
+        this.auctionEndAt = 0L;
+        this.auctionMinBid = 0.0D;
+        this.highestBid = 0.0D;
+        this.highestBidderUuid = "";
+        this.highestBidderName = "";
     }
 
     public String getId() {
@@ -330,6 +455,86 @@ public class FreeFrameData {
             }
         }
         return null;
+    }
+
+    public ShopOwnerType getShopOwnerType() {
+        return this.shopOwnerType;
+    }
+
+    public void setShopOwnerType(ShopOwnerType shopOwnerType) {
+        this.shopOwnerType = shopOwnerType == null ? ShopOwnerType.USER : shopOwnerType;
+    }
+
+    public String getNetworkId() {
+        return this.networkId;
+    }
+
+    public void setNetworkId(String networkId) {
+        this.networkId = networkId == null ? "" : networkId.trim().toLowerCase(java.util.Locale.ENGLISH);
+    }
+
+    public String getSeasonRuleId() {
+        return this.seasonRuleId;
+    }
+
+    public void setSeasonRuleId(String seasonRuleId) {
+        this.seasonRuleId = seasonRuleId == null ? "" : seasonRuleId.trim().toLowerCase(java.util.Locale.ENGLISH);
+    }
+
+    public SaleMode getSaleMode() {
+        return this.saleMode;
+    }
+
+    public void setSaleMode(SaleMode saleMode) {
+        this.saleMode = saleMode == null ? SaleMode.INSTANT : saleMode;
+    }
+
+    public long getAuctionEndAt() {
+        return this.auctionEndAt;
+    }
+
+    public void setAuctionEndAt(long auctionEndAt) {
+        this.auctionEndAt = Math.max(0L, auctionEndAt);
+    }
+
+    public double getAuctionMinBid() {
+        return this.auctionMinBid;
+    }
+
+    public void setAuctionMinBid(double auctionMinBid) {
+        this.auctionMinBid = Math.max(0.0D, auctionMinBid);
+    }
+
+    public double getHighestBid() {
+        return this.highestBid;
+    }
+
+    public void setHighestBid(double highestBid) {
+        this.highestBid = Math.max(0.0D, highestBid);
+    }
+
+    public String getHighestBidderUuid() {
+        return this.highestBidderUuid;
+    }
+
+    public void setHighestBidderUuid(String highestBidderUuid) {
+        this.highestBidderUuid = highestBidderUuid == null ? "" : highestBidderUuid;
+    }
+
+    public String getHighestBidderName() {
+        return this.highestBidderName;
+    }
+
+    public void setHighestBidderName(String highestBidderName) {
+        this.highestBidderName = highestBidderName == null ? "" : highestBidderName;
+    }
+
+    public double getCollectedTaxTotal() {
+        return this.collectedTaxTotal;
+    }
+
+    public void setCollectedTaxTotal(double collectedTaxTotal) {
+        this.collectedTaxTotal = Math.max(0.0D, collectedTaxTotal);
     }
 
     public boolean isOwnedBy(String uuid) {

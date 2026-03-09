@@ -6,13 +6,13 @@ Validierung des Plugins auf Spigot `1.8.8` und `1.21.11`.
 ## Voraussetzungen
 - Server A: Spigot `1.8.8`
 - Server B: Spigot `1.21.11`
-- Plugin-JAR: `target/FreeFrame-1.7.0.jar`
+- Plugin-JAR: `target/FreeFrame-1.8.0.jar`
 - Testspieler: `Admin` (OP), `User`
 - Optional: Vault + Economy Plugin, PlaceholderAPI, WorldGuard, GriefPrevention
 
 ## Installation
 1. Server stoppen.
-2. `FreeFrame-1.7.0.jar` nach `plugins/` kopieren.
+2. `FreeFrame-1.8.0.jar` nach `plugins/` kopieren.
 3. Server starten.
 4. Im Log `Status: Enabled` pruefen.
 5. `plugins/FreeFrame/config.yml` pruefen.
@@ -20,7 +20,7 @@ Validierung des Plugins auf Spigot `1.8.8` und `1.21.11`.
 ## Funktionstests
 1. Basis
 - `/freeframe help` zeigt alle Subcommands.
-- `/freeframe info` zeigt Version `1.7.0`.
+- `/freeframe info` zeigt Version `1.8.0`.
 
 2. Buy-Limits
 - `freeframe.limits.enabled: true`
@@ -92,7 +92,33 @@ Validierung des Plugins auf Spigot `1.8.8` und `1.21.11`.
 - Optional Discord/Webhook URL setzen und Kauf/Adminaktion pruefen.
 - Optional WorldGuard/GriefPrevention mit aktivierter Integration testen.
 
-18. PlaceholderAPI
+18. Admin/User Shops + Offer Mode
+- `freeframe.shops.offerMode` auf `ADMIN`, `USER`, `BOTH` testen.
+- `shoptype` pro Frame setzen und Sichtbarkeit/Nutzung pruefen.
+
+19. Owner Management
+- Owner ohne Adminrechte nutzt `setprice`, `setstock`, `setprofile`, `network`, `season`, `auction`.
+- Fremder User ohne Ownership darf diese nicht ausfuehren.
+
+20. Dynamic Pricing + Tax + Seasons
+- Dynamic Pricing aktivieren und Kaufserie ausfuehren -> Preis steigt.
+- Tax aktivieren -> Net-/Tax-Verteilung plausibel.
+- Saisonregel aktivieren -> Preis-/Tax-Override greift im Zeitfenster.
+
+21. Auction
+- `auction start` + `bid` mit mehreren Spielern.
+- Settlement nach Ablauf pruefen.
+
+22. Async DB Queue + Journal Replay
+- Backend `sqlite`/`mysql`, viele Kaeufe erzeugen.
+- `journal/events.log` enthaelt Commit-Eintraege.
+- `/freeframe replay dry` und `/freeframe replay` pruefen.
+
+23. Dashboard + Alerts
+- Dashboard aktivieren, Endpunkte `/health`, `/stats`, `/frames` pruefen.
+- Alerting bei Low-Stock und absichtlichen Fail-Cases pruefen.
+
+24. PlaceholderAPI
 - Bei installiertem PlaceholderAPI: Placeholder in Messages/Display werden ersetzt.
 
 ## Regression

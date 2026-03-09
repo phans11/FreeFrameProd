@@ -4,6 +4,7 @@ import de.isolveproblems.freeframe.api.BackupService;
 import de.isolveproblems.freeframe.api.ChestRestockService;
 import de.isolveproblems.freeframe.api.DiscountService;
 import de.isolveproblems.freeframe.api.LocalizationService;
+import de.isolveproblems.freeframe.api.OfferMode;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
 import de.isolveproblems.freeframe.api.PurchaseProcessor;
 import de.isolveproblems.freeframe.api.RegionAccessService;
@@ -11,26 +12,36 @@ import de.isolveproblems.freeframe.api.StatisticsService;
 import de.isolveproblems.freeframe.api.TransactionGuard;
 import de.isolveproblems.freeframe.api.WebhookExportService;
 import de.isolveproblems.freeframe.economy.VaultEconomyService;
+import de.isolveproblems.freeframe.utils.AlertService;
+import de.isolveproblems.freeframe.utils.AuctionService;
 import de.isolveproblems.freeframe.utils.AmountValidator;
 import de.isolveproblems.freeframe.utils.AuditLogger;
 import de.isolveproblems.freeframe.utils.ChestInventoryRestockService;
 import de.isolveproblems.freeframe.utils.CompositeRegionAccessService;
 import de.isolveproblems.freeframe.utils.ConfigurationMessages;
+import de.isolveproblems.freeframe.utils.DashboardServer;
 import de.isolveproblems.freeframe.utils.DefaultDiscountService;
 import de.isolveproblems.freeframe.utils.DefaultPurchaseProcessor;
+import de.isolveproblems.freeframe.utils.DynamicPricingService;
 import de.isolveproblems.freeframe.utils.FrameDisplayService;
 import de.isolveproblems.freeframe.utils.FrameRegistry;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
 import de.isolveproblems.freeframe.utils.InMemoryTransactionGuard;
 import de.isolveproblems.freeframe.utils.InteractionLimiter;
 import de.isolveproblems.freeframe.utils.ItemPolicy;
+import de.isolveproblems.freeframe.utils.JournalReplayReport;
 import de.isolveproblems.freeframe.utils.LocalBackupService;
 import de.isolveproblems.freeframe.utils.LocalStatisticsService;
 import de.isolveproblems.freeframe.utils.MetricsTracker;
 import de.isolveproblems.freeframe.utils.PlaceholderSupport;
+import de.isolveproblems.freeframe.utils.PurchaseSecurityService;
 import de.isolveproblems.freeframe.utils.PurchaseWindowLimiter;
 import de.isolveproblems.freeframe.utils.RegionRestrictionService;
 import de.isolveproblems.freeframe.utils.RegisterClasses;
+import de.isolveproblems.freeframe.utils.SeasonalRulesService;
+import de.isolveproblems.freeframe.utils.ShopNetworkService;
+import de.isolveproblems.freeframe.utils.TaxService;
+import de.isolveproblems.freeframe.utils.TransactionJournalService;
 import de.isolveproblems.freeframe.utils.WebhookNotifier;
 import de.isolveproblems.freeframe.utils.YamlLocalizationService;
 import org.bukkit.Bukkit;
@@ -72,24 +83,40 @@ public class FreeFrame extends JavaPlugin {
     private WebhookExportService webhookExportService;
     private TransactionGuard transactionGuard;
     private PurchaseProcessor purchaseProcessor;
+    private TaxService taxService;
+    private SeasonalRulesService seasonalRulesService;
+    private DynamicPricingService dynamicPricingService;
+    private ShopNetworkService shopNetworkService;
+    private PurchaseSecurityService purchaseSecurityService;
+    private TransactionJournalService transactionJournalService;
+    private AlertService alertService;
+    private DashboardServer dashboardServer;
+    private AuctionService auctionService;
 
     @Override
     public void onEnable() {
         this.configHandler = new ConfigurationMessages(this);
         this.registrar = new RegisterClasses(this);
-
         this.load();
         this.logLifecycleState(true);
     }
 
     @Override
     public void onDisable() {
+        if (this.dashboardServer != null) {
+            this.dashboardServer.stop();
+        }
+        if (this.auctionService != null) {
+            this.auctionService.stop();
+        }
+
         if (this.statisticsService != null) {
             this.statisticsService.save();
         }
 
         if (this.frameRegistry != null) {
             this.frameRegistry.saveToConfig();
+            this.frameRegistry.flushStorage();
         }
 
         if (this.displayService != null && this.getPluginConfig().getBoolean("freeframe.display.removeOnDisable", false) && this.frameRegistry != null) {
@@ -123,6 +150,15 @@ public class FreeFrame extends JavaPlugin {
         this.transactionGuard = new InMemoryTransactionGuard();
         this.webhookExportService = new WebhookNotifier(this);
         this.regionAccessService = new CompositeRegionAccessService(this, this.regionRestrictionService);
+        this.taxService = new TaxService(this);
+        this.seasonalRulesService = new SeasonalRulesService(this);
+        this.dynamicPricingService = new DynamicPricingService(this);
+        this.shopNetworkService = new ShopNetworkService(this);
+        this.purchaseSecurityService = new PurchaseSecurityService(this);
+        this.transactionJournalService = new TransactionJournalService(this);
+        this.alertService = new AlertService(this);
+        this.dashboardServer = new DashboardServer(this);
+        this.auctionService = new AuctionService(this);
         this.purchaseProcessor = new DefaultPurchaseProcessor(
             this,
             this.discountService,
@@ -145,6 +181,8 @@ public class FreeFrame extends JavaPlugin {
 
         this.displayService.refreshAll(this.frameRegistry.listFrames());
         this.initializeOptionalBStats();
+        this.dashboardServer.start();
+        this.auctionService.start();
         this.registrar.registerCommands();
         this.registrar.registerListeners();
     }
@@ -158,6 +196,23 @@ public class FreeFrame extends JavaPlugin {
         this.economyService.initialize();
         this.regionAccessService = new CompositeRegionAccessService(this, this.regionRestrictionService);
         this.webhookExportService = new WebhookNotifier(this);
+        this.taxService = new TaxService(this);
+        this.seasonalRulesService = new SeasonalRulesService(this);
+        this.dynamicPricingService = new DynamicPricingService(this);
+        this.shopNetworkService = new ShopNetworkService(this);
+        this.purchaseSecurityService = new PurchaseSecurityService(this);
+        this.transactionJournalService = new TransactionJournalService(this);
+        this.alertService = new AlertService(this);
+        if (this.dashboardServer == null) {
+            this.dashboardServer = new DashboardServer(this);
+        }
+        this.dashboardServer.stop();
+        this.dashboardServer.start();
+        if (this.auctionService == null) {
+            this.auctionService = new AuctionService(this);
+        }
+        this.auctionService.stop();
+        this.auctionService.start();
         this.purchaseProcessor = new DefaultPurchaseProcessor(
             this,
             this.discountService,
@@ -273,6 +328,49 @@ public class FreeFrame extends JavaPlugin {
         return this.purchaseProcessor;
     }
 
+    public TaxService getTaxService() {
+        return this.taxService;
+    }
+
+    public SeasonalRulesService getSeasonalRulesService() {
+        return this.seasonalRulesService;
+    }
+
+    public DynamicPricingService getDynamicPricingService() {
+        return this.dynamicPricingService;
+    }
+
+    public ShopNetworkService getShopNetworkService() {
+        return this.shopNetworkService;
+    }
+
+    public PurchaseSecurityService getPurchaseSecurityService() {
+        return this.purchaseSecurityService;
+    }
+
+    public TransactionJournalService getTransactionJournalService() {
+        return this.transactionJournalService;
+    }
+
+    public AlertService getAlertService() {
+        return this.alertService;
+    }
+
+    public DashboardServer getDashboardServer() {
+        return this.dashboardServer;
+    }
+
+    public AuctionService getAuctionService() {
+        return this.auctionService;
+    }
+
+    public JournalReplayReport replayTransactionJournal(boolean dryRun) {
+        if (this.transactionJournalService == null || this.purchaseSecurityService == null) {
+            return new JournalReplayReport(0, 0, 0, 0);
+        }
+        return this.transactionJournalService.replayIdempotency(this.purchaseSecurityService, dryRun);
+    }
+
     public FileConfiguration getPluginConfig() {
         return this.configHandler.getConfig();
     }
@@ -358,7 +456,7 @@ public class FreeFrame extends JavaPlugin {
                 try {
                     doubles.add(Double.parseDouble(String.valueOf(entry)));
                 } catch (NumberFormatException ignored) {
-                    // Ignore invalid values and keep defaults stable.
+                    // Keep defaults when entries are malformed.
                 }
             }
         }
@@ -367,6 +465,10 @@ public class FreeFrame extends JavaPlugin {
 
     public boolean isSaleSlot(int rawSlot) {
         return this.getSaleSlots().contains(rawSlot);
+    }
+
+    public OfferMode getOfferMode() {
+        return OfferMode.fromString(this.getPluginConfig().getString("freeframe.shops.offerMode", "BOTH"));
     }
 
     public String getGuiTitle(Player player) {
@@ -379,6 +481,10 @@ public class FreeFrame extends JavaPlugin {
             return false;
         }
 
+        if (!this.isShopTypeOffered(frameData)) {
+            return false;
+        }
+
         if (!this.getPluginConfig().getBoolean("freeframe.access.requireOwner", false)) {
             return true;
         }
@@ -388,6 +494,40 @@ public class FreeFrame extends JavaPlugin {
         }
 
         return frameData.isOwnedBy(player.getUniqueId().toString());
+    }
+
+    public boolean canPlayerManageFrame(Player player, FreeFrameData frameData) {
+        if (player == null || frameData == null) {
+            return false;
+        }
+
+        if (player.hasPermission(this.getConfigHandler().getAdminPermissionNode())) {
+            return true;
+        }
+
+        if (!this.getPluginConfig().getBoolean("freeframe.ownerManagement.enabled", true)) {
+            return false;
+        }
+        if (!player.hasPermission("freeframe.owner.manage")) {
+            return false;
+        }
+        return frameData.isOwnedBy(player.getUniqueId().toString());
+    }
+
+    public boolean isShopTypeOffered(FreeFrameData frameData) {
+        if (frameData == null) {
+            return false;
+        }
+
+        OfferMode offerMode = this.getOfferMode();
+        switch (offerMode) {
+            case ADMIN:
+                return "ADMIN".equalsIgnoreCase(frameData.getShopOwnerType().name());
+            case USER:
+                return "USER".equalsIgnoreCase(frameData.getShopOwnerType().name());
+            default:
+                return true;
+        }
     }
 
     public boolean isItemAllowed(Material material) {

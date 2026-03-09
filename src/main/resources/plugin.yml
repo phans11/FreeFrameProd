@@ -8,7 +8,7 @@ softdepend: [Vault, PlaceholderAPI, WorldGuard, GriefPrevention]
 commands:
   freeframe:
     description: Main command for FreeFrame
-    usage: /freeframe <help|info|reload|list|inspect|remove|setprice|setstock|settype|setprofile|clearprofiles|linkchest|stats|backup|restore|doctor|wand|storage|export|migrate|repair|debug>
+    usage: /freeframe <help|info|reload|bid|myshops|list|inspect|remove|setprice|setstock|settype|shoptype|setprofile|clearprofiles|linkchest|network|season|auction|stats|backup|restore|doctor|replay|wand|storage|export|migrate|repair|debug>
     aliases: [ff]
 
 permissions:
@@ -28,6 +28,9 @@ permissions:
   freeframe.access.bypass:
     description: Bypass owner-based frame access restrictions
     default: op
+  freeframe.owner.manage:
+    description: Allows shop creators to manage their own frames
+    default: true
   freeframe.adminonly:
     description: Allows use of admin-only FreeFrames
     default: op

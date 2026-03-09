@@ -3,6 +3,8 @@ package de.isolveproblems.freeframe.utils;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.FrameType;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
+import de.isolveproblems.freeframe.api.SaleMode;
+import de.isolveproblems.freeframe.api.ShopOwnerType;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -234,6 +236,21 @@ public class FrameRegistry {
         return this.framesById.size();
     }
 
+    public synchronized List<FreeFrameData> listByNetwork(String networkId) {
+        List<FreeFrameData> matches = new ArrayList<FreeFrameData>();
+        if (networkId == null || networkId.trim().isEmpty()) {
+            return matches;
+        }
+
+        String normalized = networkId.trim().toLowerCase(Locale.ENGLISH);
+        for (FreeFrameData data : this.framesById.values()) {
+            if (normalized.equals(data.getNetworkId())) {
+                matches.add(data);
+            }
+        }
+        return matches;
+    }
+
     public synchronized void replaceAll(List<FreeFrameData> frames) {
         this.framesById.clear();
         this.frameIdByReference.clear();
@@ -294,6 +311,10 @@ public class FrameRegistry {
         this.storageService.saveFrames(this.listFrames());
     }
 
+    public synchronized void flushStorage() {
+        this.storageService.flushAndShutdown();
+    }
+
     public synchronized String getActiveStorageBackend() {
         return this.storageService.resolveType().name().toLowerCase(Locale.ENGLISH);
     }
@@ -305,6 +326,10 @@ public class FrameRegistry {
 
         int maxStock = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.stock.defaultMax", 64));
         int stock = Math.max(0, Math.min(maxStock, this.freeframe.getPluginConfig().getInt("freeframe.stock.default", maxStock)));
+        ShopOwnerType ownerType = ShopOwnerType.USER;
+        if (owner != null && owner.hasPermission(this.freeframe.getConfigHandler().getAdminPermissionNode())) {
+            ownerType = ShopOwnerType.ADMIN;
+        }
 
         return new FreeFrameData(
             id,
@@ -325,7 +350,17 @@ public class FrameRegistry {
             "",
             FrameType.fromString(this.freeframe.getPluginConfig().getString("freeframe.types.default", "SHOP")),
             null,
-            this.defaultPurchaseProfiles()
+            this.defaultPurchaseProfiles(),
+            ownerType,
+            "",
+            "",
+            SaleMode.fromString(this.freeframe.getPluginConfig().getString("freeframe.saleMode.default", "INSTANT")),
+            0L,
+            0.0D,
+            0.0D,
+            "",
+            "",
+            0.0D
         );
     }
 
@@ -394,6 +429,56 @@ public class FrameRegistry {
 
         if (data.getPurchaseProfiles().isEmpty()) {
             data.setPurchaseProfiles(this.defaultPurchaseProfiles());
+            changed = true;
+        }
+
+        if (data.getShopOwnerType() == null) {
+            data.setShopOwnerType(ShopOwnerType.USER);
+            changed = true;
+        }
+
+        if (data.getNetworkId() == null) {
+            data.setNetworkId("");
+            changed = true;
+        }
+
+        if (data.getSeasonRuleId() == null) {
+            data.setSeasonRuleId("");
+            changed = true;
+        }
+
+        if (data.getSaleMode() == null) {
+            data.setSaleMode(SaleMode.INSTANT);
+            changed = true;
+        }
+
+        if (data.getAuctionEndAt() < 0L) {
+            data.setAuctionEndAt(0L);
+            changed = true;
+        }
+
+        if (data.getAuctionMinBid() < 0.0D) {
+            data.setAuctionMinBid(0.0D);
+            changed = true;
+        }
+
+        if (data.getHighestBid() < 0.0D) {
+            data.setHighestBid(0.0D);
+            changed = true;
+        }
+
+        if (data.getHighestBidderUuid() == null) {
+            data.setHighestBidderUuid("");
+            changed = true;
+        }
+
+        if (data.getHighestBidderName() == null) {
+            data.setHighestBidderName("");
+            changed = true;
+        }
+
+        if (data.getCollectedTaxTotal() < 0.0D) {
+            data.setCollectedTaxTotal(0.0D);
             changed = true;
         }
 
