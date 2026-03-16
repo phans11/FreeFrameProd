@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.listener;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.inventory.SetupEditorInventoryHolder;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
@@ -31,8 +32,8 @@ public class SetupEditorListener implements Listener {
             return;
         }
 
-        int size = sanitizeInventorySize(freeframe.getPluginConfig().getInt("freeframe.setup.editor.inventorySize", 27));
-        String titleTemplate = freeframe.getPluginConfig().getString("freeframe.setup.editor.title", "&8FreeFrame Setup: &e%id%");
+        int size = sanitizeInventorySize(freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_INVENTORYSIZE));
+        String titleTemplate = freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_TITLE);
         if (titleTemplate == null || titleTemplate.trim().isEmpty()) {
             titleTemplate = "&8FreeFrame Setup: &e%id%";
         }
@@ -73,9 +74,9 @@ public class SetupEditorListener implements Listener {
             "&7Current: &f" + frameData.isActive()
         ));
 
-        int stockStep = Math.max(1, freeframe.getPluginConfig().getInt("freeframe.setup.editor.stockStep", 1));
-        int maxStockStep = Math.max(1, freeframe.getPluginConfig().getInt("freeframe.setup.editor.maxStockStep", 8));
-        double priceStep = Math.max(0.01D, freeframe.getPluginConfig().getDouble("freeframe.setup.editor.priceStep", 1.0D));
+        int stockStep = Math.max(1, freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_STOCKSTEP));
+        int maxStockStep = Math.max(1, freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_MAXSTOCKSTEP));
+        double priceStep = Math.max(0.01D, freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_PRICESTEP));
 
         placeButton(inventory, stockDownSlot, createButton(
             resolveMaterial(freeframe, "freeframe.setup.editor.materials.stockDown", Material.REDSTONE),
@@ -172,10 +173,10 @@ public class SetupEditorListener implements Listener {
         int maxStockUpSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.maxStockUp", 20, size);
         int closeSlot = resolveSlot(this.freeframe, "freeframe.setup.editor.slots.close", 22, size);
 
-        int stockStep = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.setup.editor.stockStep", 1));
-        int maxStockStep = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.setup.editor.maxStockStep", 8));
-        int maxStockCap = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.setup.editor.maxStockCap", 4096));
-        double priceStep = Math.max(0.01D, this.freeframe.getPluginConfig().getDouble("freeframe.setup.editor.priceStep", 1.0D));
+        int stockStep = Math.max(1, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_STOCKSTEP));
+        int maxStockStep = Math.max(1, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_MAXSTOCKSTEP));
+        int maxStockCap = Math.max(1, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_MAXSTOCKCAP));
+        double priceStep = Math.max(0.01D, this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_PRICESTEP));
 
         boolean changed = false;
         if (slot == closeSlot) {
@@ -219,12 +220,12 @@ public class SetupEditorListener implements Listener {
         }
 
         this.freeframe.getFrameRegistry().saveToConfig();
-        if (this.freeframe.getPluginConfig().getBoolean("freeframe.setup.editor.refreshDisplay", true)) {
+        if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_REFRESHDISPLAY)) {
             this.freeframe.getDisplayService().refresh(frameData);
         }
         this.freeframe.getAuditLogger().logAdminAction(player, "setup-update", frameData.getId() + " slot=" + slot);
 
-        if (this.freeframe.getPluginConfig().getBoolean("freeframe.setup.editor.closeAfterChange", false)) {
+        if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_SETUP_EDITOR_CLOSEAFTERCHANGE)) {
             player.closeInventory();
             return;
         }

@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.FrameType;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
@@ -41,7 +42,7 @@ public class FrameStorageService {
     }
 
     public StorageType resolveType() {
-        String configured = this.freeframe.getPluginConfig().getString("freeframe.storage.type", "yaml");
+        String configured = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_STORAGE_TYPE);
         if (configured == null) {
             return StorageType.YAML;
         }
@@ -78,7 +79,7 @@ public class FrameStorageService {
             return;
         }
 
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.storage.asyncQueue.enabled", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_STORAGE_ASYNCQUEUE_ENABLED)) {
             if (!this.saveToDatabase(type, frames)) {
                 this.freeframe.getLogger().warning("Database save failed, writing frames to YAML fallback.");
                 this.saveToYaml(frames);
@@ -412,7 +413,7 @@ public class FrameStorageService {
 
     private Connection openConnection(StorageType type) throws Exception {
         if (type == StorageType.SQLITE) {
-            String fileName = this.freeframe.getPluginConfig().getString("freeframe.storage.sqlite.file", "freeframe.db");
+            String fileName = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_STORAGE_SQLITE_FILE);
             if (fileName == null || fileName.trim().isEmpty()) {
                 fileName = "freeframe.db";
             }
@@ -427,12 +428,12 @@ public class FrameStorageService {
             return DriverManager.getConnection(url);
         }
 
-        String host = this.freeframe.getPluginConfig().getString("freeframe.storage.mysql.host", "127.0.0.1");
-        int port = this.freeframe.getPluginConfig().getInt("freeframe.storage.mysql.port", 3306);
-        String database = this.freeframe.getPluginConfig().getString("freeframe.storage.mysql.database", "freeframe");
-        String username = this.freeframe.getPluginConfig().getString("freeframe.storage.mysql.username", "root");
-        String password = this.freeframe.getPluginConfig().getString("freeframe.storage.mysql.password", "");
-        boolean ssl = this.freeframe.getPluginConfig().getBoolean("freeframe.storage.mysql.ssl", false);
+        String host = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_STORAGE_MYSQL_HOST);
+        int port = this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_STORAGE_MYSQL_PORT);
+        String database = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_STORAGE_MYSQL_DATABASE);
+        String username = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_STORAGE_MYSQL_USERNAME);
+        String password = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_STORAGE_MYSQL_PASSWORD);
+        boolean ssl = this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_STORAGE_MYSQL_SSL);
 
         String url = "jdbc:mysql://" + host + ":" + port + "/" + database
             + "?useSSL=" + ssl + "&allowPublicKeyRetrieval=true&serverTimezone=UTC";
@@ -449,7 +450,7 @@ public class FrameStorageService {
     }
 
     private String resolveTableName() {
-        String configured = this.freeframe.getPluginConfig().getString("freeframe.storage.mysql.table", "freeframe_frames");
+        String configured = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_STORAGE_MYSQL_TABLE);
         if (configured == null || configured.trim().isEmpty()) {
             return "freeframe_frames";
         }

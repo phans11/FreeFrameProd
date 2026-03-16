@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.ConfigAPI;
 import de.isolveproblems.freeframe.api.LocalizationService;
@@ -39,9 +40,9 @@ public class YamlLocalizationService implements LocalizationService {
     }
 
     private String resolveLocale(Player player) {
-        String configured = this.freeframe.getPluginConfig().getString("freeframe.localization.defaultLocale", "en");
+        String configured = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_LOCALIZATION_DEFAULTLOCALE);
         String locale = configured == null ? "en" : configured.toLowerCase(Locale.ENGLISH);
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.localization.usePlayerLocale", true) || player == null) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_LOCALIZATION_USEPLAYERLOCALE) || player == null) {
             return locale;
         }
 

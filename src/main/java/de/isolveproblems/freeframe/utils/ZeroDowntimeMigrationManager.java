@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.MigrationPreview;
 import de.isolveproblems.freeframe.api.ZeroDowntimeMigrationService;
@@ -37,8 +38,8 @@ public class ZeroDowntimeMigrationManager implements ZeroDowntimeMigrationServic
     @Override
     public MigrationPreview apply() {
         List<FreeFrameData> frames = this.freeframe.getFrameRegistry().listFrames();
-        String defaultTheme = this.freeframe.getPluginConfig().getString("freeframe.branding.defaultTheme", "classic");
-        String defaultCampaign = this.freeframe.getPluginConfig().getString("freeframe.campaigns.defaultRule", "");
+        String defaultTheme = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_BRANDING_DEFAULTTHEME);
+        String defaultCampaign = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_CAMPAIGNS_DEFAULTRULE);
 
         for (FreeFrameData frameData : frames) {
             if (frameData.getBrandingId() == null || frameData.getBrandingId().trim().isEmpty()) {

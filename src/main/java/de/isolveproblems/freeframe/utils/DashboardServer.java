@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -21,15 +22,15 @@ public class DashboardServer {
     }
 
     public synchronized void start() {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.dashboard.enabled", false)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DASHBOARD_ENABLED)) {
             return;
         }
         if (this.server != null) {
             return;
         }
 
-        int port = this.freeframe.getPluginConfig().getInt("freeframe.dashboard.port", 8095);
-        String host = this.freeframe.getPluginConfig().getString("freeframe.dashboard.host", "127.0.0.1");
+        int port = this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_DASHBOARD_PORT);
+        String host = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_DASHBOARD_HOST);
         try {
             this.server = HttpServer.create(new InetSocketAddress(host, port), 0);
             this.server.createContext("/health", new JsonHandler(this, "health"));
@@ -94,7 +95,7 @@ public class DashboardServer {
     }
 
     private boolean isAuthorized(HttpExchange exchange) {
-        String token = this.freeframe.getPluginConfig().getString("freeframe.dashboard.token", "");
+        String token = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_DASHBOARD_TOKEN);
         if (token == null || token.trim().isEmpty()) {
             return true;
         }

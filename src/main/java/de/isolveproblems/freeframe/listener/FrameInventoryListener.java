@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.listener;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
 import de.isolveproblems.freeframe.api.PurchaseRequest;
@@ -127,8 +128,8 @@ public class FrameInventoryListener implements Listener {
         InteractionLimiter.LimitResult limitResult = this.freeframe.getInteractionLimiter().checkAndMark(
             player.getUniqueId(),
             frameData.getId(),
-            this.freeframe.getPluginConfig().getLong("freeframe.cooldown.playerMillis", 300L),
-            this.freeframe.getPluginConfig().getLong("freeframe.cooldown.frameMillis", 100L)
+            this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_COOLDOWN_PLAYERMILLIS),
+            this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_COOLDOWN_FRAMEMILLIS)
         );
 
         if (limitResult == InteractionLimiter.LimitResult.PLAYER_COOLDOWN) {
@@ -151,12 +152,12 @@ public class FrameInventoryListener implements Listener {
             return;
         }
 
-        if (this.freeframe.getPluginConfig().getBoolean("freeframe.limits.enabled", false)) {
+        if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_LIMITS_ENABLED)) {
             PurchaseWindowLimiter.LimitState state = this.freeframe.getPurchaseWindowLimiter().checkAndConsume(
                 player.getUniqueId(),
                 profile.getAmount(),
-                this.freeframe.getPluginConfig().getInt("freeframe.limits.maxItemsPerWindow", 64),
-                this.freeframe.getPluginConfig().getLong("freeframe.limits.windowMillis", 600000L)
+                this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_LIMITS_MAXITEMSPERWINDOW),
+                this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_LIMITS_WINDOWMILLIS)
             );
 
             if (!state.isAllowed()) {
@@ -229,7 +230,7 @@ public class FrameInventoryListener implements Listener {
                 player.sendMessage(this.freeframe.getMessage("freeframe.security.duplicate", "%prefix% &eDuplicate purchase blocked.", player));
                 return;
             }
-            if (!this.freeframe.getPluginConfig().getBoolean("freeframe.gui.dropOnFullInventory", true)
+            if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_GUI_DROPONFULLINVENTORY)
                 && !this.canFit(player, templateItem, amount)) {
                 player.sendMessage(this.freeframe.getMessage("freeframe.purchase.inventoryFull", "%prefix% &cYour inventory is full.", player));
                 return;
@@ -289,7 +290,7 @@ public class FrameInventoryListener implements Listener {
             this.freeframe.getNetworkSyncService().publishFrameUpdate(frameData, "purchase");
             this.freeframe.getAlertService().alertLowStock(frameData);
 
-            if (this.freeframe.getPluginConfig().getBoolean("freeframe.gui.closeAfterPurchase", false)) {
+            if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_GUI_CLOSEAFTERPURCHASE)) {
                 player.closeInventory();
             }
 
@@ -314,7 +315,7 @@ public class FrameInventoryListener implements Listener {
             return false;
         }
 
-        boolean allowWithoutVault = this.freeframe.getPluginConfig().getBoolean("freeframe.economy.allowWithoutVault", false);
+        boolean allowWithoutVault = this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_ECONOMY_ALLOWWITHOUTVAULT);
         if (!this.freeframe.getEconomyService().isAvailable() && !allowWithoutVault) {
             player.sendMessage(this.freeframe.getMessage(
                 "freeframe.purchase.economyUnavailable",
@@ -359,8 +360,8 @@ public class FrameInventoryListener implements Listener {
     }
 
     private void payOwner(Player buyer, FreeFrameData frameData, double amount) {
-        boolean payOwnerOnSelf = this.freeframe.getPluginConfig().getBoolean("freeframe.economy.payOwnerOnSelfPurchase", false);
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.economy.payOwner", true)) {
+        boolean payOwnerOnSelf = this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_ECONOMY_PAYOWNERONSELFPURCHASE);
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_ECONOMY_PAYOWNER)) {
             return;
         }
 
@@ -395,7 +396,7 @@ public class FrameInventoryListener implements Listener {
             return;
         }
 
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.gui.dropOnFullInventory", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_GUI_DROPONFULLINVENTORY)) {
             player.sendMessage(this.freeframe.getMessage(
                 "freeframe.purchase.inventoryFull",
                 "%prefix% &cYour inventory is full.",
@@ -459,7 +460,7 @@ public class FrameInventoryListener implements Listener {
             return fallback.trim();
         }
 
-        String configured = this.freeframe.getPluginConfig().getString("freeframe.default.currency", "$");
+        String configured = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_DEFAULT_CURRENCY);
         return configured == null || configured.trim().isEmpty() ? "$" : configured.trim();
     }
 

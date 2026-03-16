@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.FrameType;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
@@ -324,8 +325,8 @@ public class FrameRegistry {
         String ownerName = owner == null ? "unknown" : owner.getName();
         String itemType = (itemStack == null || itemStack.getType() == null) ? "UNKNOWN" : itemStack.getType().name();
 
-        int maxStock = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.stock.defaultMax", 64));
-        int stock = Math.max(0, Math.min(maxStock, this.freeframe.getPluginConfig().getInt("freeframe.stock.default", maxStock)));
+        int maxStock = Math.max(1, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_STOCK_DEFAULTMAX));
+        int stock = Math.max(0, Math.min(maxStock, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_STOCK_DEFAULT)));
         ShopOwnerType ownerType = ShopOwnerType.USER;
         if (owner != null && owner.hasPermission(this.freeframe.getConfigHandler().getAdminPermissionNode())) {
             ownerType = ShopOwnerType.ADMIN;
@@ -343,20 +344,20 @@ public class FrameRegistry {
             true,
             stock,
             maxStock,
-            this.freeframe.getPluginConfig().getBoolean("freeframe.stock.autoRefill.defaultEnabled", false),
-            Math.max(0L, this.freeframe.getPluginConfig().getLong("freeframe.stock.autoRefill.defaultIntervalMillis", 300_000L)),
+            this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_STOCK_AUTOREFILL_DEFAULTENABLED),
+            Math.max(0L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_STOCK_AUTOREFILL_DEFAULTINTERVALMILLIS)),
             System.currentTimeMillis(),
             0.0D,
             "",
-            FrameType.fromString(this.freeframe.getPluginConfig().getString("freeframe.types.default", "SHOP")),
+            FrameType.fromString(this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_TYPES_DEFAULT)),
             null,
             this.defaultPurchaseProfiles(),
             ownerType,
             "",
             "",
-            this.freeframe.getPluginConfig().getString("freeframe.branding.defaultTheme", "classic"),
-            this.freeframe.getPluginConfig().getString("freeframe.campaigns.defaultRule", ""),
-            SaleMode.fromString(this.freeframe.getPluginConfig().getString("freeframe.saleMode.default", "INSTANT")),
+            this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_BRANDING_DEFAULTTHEME),
+            this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_CAMPAIGNS_DEFAULTRULE),
+            SaleMode.fromString(this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_SALEMODE_DEFAULT)),
             0L,
             0.0D,
             0.0D,
@@ -400,7 +401,7 @@ public class FrameRegistry {
         }
 
         if (data.getMaxStock() < 1) {
-            data.setMaxStock(Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.stock.defaultMax", 64)));
+            data.setMaxStock(Math.max(1, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_STOCK_DEFAULTMAX)));
             changed = true;
         }
 
@@ -425,7 +426,7 @@ public class FrameRegistry {
         }
 
         if (data.getFrameType() == null) {
-            data.setFrameType(FrameType.fromString(this.freeframe.getPluginConfig().getString("freeframe.types.default", "SHOP")));
+            data.setFrameType(FrameType.fromString(this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_TYPES_DEFAULT)));
             changed = true;
         }
 
@@ -527,11 +528,11 @@ public class FrameRegistry {
     }
 
     private double defaultPrice() {
-        return Math.max(0.0D, this.freeframe.getPluginConfig().getDouble("freeframe.default.price", 0.0D));
+        return Math.max(0.0D, this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_DEFAULT_PRICE));
     }
 
     private String defaultCurrency() {
-        String currency = this.freeframe.getPluginConfig().getString("freeframe.default.currency", "$");
+        String currency = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_DEFAULT_CURRENCY);
         return currency == null || currency.trim().isEmpty() ? "$" : currency.trim();
     }
 

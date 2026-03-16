@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.listener;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
 import de.isolveproblems.freeframe.inventory.FreeFrameInventoryHolder;
@@ -115,10 +116,10 @@ public class CreateFrameListener implements Listener {
         int displayAmount = previewProfile == null
             ? Math.max(1, Math.min(this.freeframe.getConfiguredItemAmount(), availableAmount))
             : Math.max(1, Math.min(previewProfile.getAmount(), availableAmount));
-        if (this.freeframe.getPluginConfig().getBoolean("freeframe.compat.armorStandAmountFix", true)
+        if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_COMPAT_ARMORSTANDAMOUNTFIX)
             && itemStack.getType() == Material.ARMOR_STAND) {
             this.updateFrameItemAmount(itemFrame, itemStack, displayAmount);
-            if (this.freeframe.getPluginConfig().getBoolean("freeframe.compat.cancelRotation", true)) {
+            if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_COMPAT_CANCELROTATION)) {
                 itemFrame.setRotation(Rotation.NONE);
             }
             event.setCancelled(true);
@@ -126,7 +127,7 @@ public class CreateFrameListener implements Listener {
         }
 
         this.openItemFrame(player, frameData, itemStack, displayAmount);
-        if (this.freeframe.getPluginConfig().getBoolean("freeframe.compat.cancelRotation", true)) {
+        if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_COMPAT_CANCELROTATION)) {
             itemFrame.setRotation(Rotation.NONE);
         }
         event.setCancelled(true);

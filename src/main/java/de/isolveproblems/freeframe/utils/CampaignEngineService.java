@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.CampaignEffect;
 import de.isolveproblems.freeframe.api.CampaignRuntimeService;
@@ -19,20 +20,20 @@ public class CampaignEngineService implements CampaignRuntimeService {
 
     @Override
     public CampaignEffect resolve(FreeFrameData frameData, long nowEpochMillis) {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.campaigns.enabled", false)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_CAMPAIGNS_ENABLED)) {
             return CampaignEffect.inactive();
         }
 
         String configuredCampaign = frameData == null ? "" : frameData.getCampaignId();
         if (configuredCampaign == null || configuredCampaign.trim().isEmpty()) {
-            configuredCampaign = this.freeframe.getPluginConfig().getString("freeframe.campaigns.defaultRule", "");
+            configuredCampaign = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_CAMPAIGNS_DEFAULTRULE);
         }
         String campaignId = configuredCampaign == null ? "" : configuredCampaign.trim().toLowerCase(Locale.ENGLISH);
         if (campaignId.isEmpty()) {
             return CampaignEffect.inactive();
         }
 
-        ConfigurationSection section = this.freeframe.getPluginConfig().getConfigurationSection("freeframe.campaigns.rules." + campaignId);
+        ConfigurationSection section = this.freeframe.cfgSection(FreeFrameConfigKey.FREEFRAME_CAMPAIGNS_RULES, campaignId);
         if (section == null || !section.getBoolean("enabled", false)) {
             return CampaignEffect.inactive();
         }
@@ -60,7 +61,7 @@ public class CampaignEngineService implements CampaignRuntimeService {
     }
 
     private boolean isWithinWindow(ConfigurationSection section, long nowEpochMillis) {
-        String timezone = this.freeframe.getPluginConfig().getString("freeframe.campaigns.timezone", "UTC");
+        String timezone = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_CAMPAIGNS_TIMEZONE);
         ZoneId zoneId = parseZone(timezone);
         long start = parseEpoch(section.getString("start", ""), zoneId);
         long end = parseEpoch(section.getString("end", ""), zoneId);

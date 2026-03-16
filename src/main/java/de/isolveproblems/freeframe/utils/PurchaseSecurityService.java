@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.ConfigAPI;
 import de.isolveproblems.freeframe.api.PurchaseProfile;
@@ -23,7 +24,7 @@ public class PurchaseSecurityService {
     }
 
     public SignedPurchaseToken createToken(Player player, FreeFrameData frameData, PurchaseProfile profile, double price) {
-        long bucketMillis = Math.max(250L, this.freeframe.getPluginConfig().getLong("freeframe.security.idempotencyBucketMillis", 1500L));
+        long bucketMillis = Math.max(250L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_SECURITY_IDEMPOTENCYBUCKETMILLIS));
         long bucket = System.currentTimeMillis() / bucketMillis;
 
         String playerPart = player == null ? "unknown" : player.getUniqueId().toString();
@@ -61,7 +62,7 @@ public class PurchaseSecurityService {
     }
 
     private String resolveSecret() {
-        String configured = this.freeframe.getPluginConfig().getString("freeframe.security.secret", "");
+        String configured = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_SECURITY_SECRET);
         if (configured != null && !configured.trim().isEmpty()) {
             return configured.trim();
         }

@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.ChestRestockService;
 import de.isolveproblems.freeframe.api.DiscountService;
@@ -54,7 +55,7 @@ public class DefaultPurchaseProcessor implements PurchaseProcessor {
         }
 
         FrameType frameType = frameData.getFrameType();
-        if (frameType == FrameType.ADMIN_ONLY && !player.hasPermission(this.freeframe.getPluginConfig().getString("freeframe.types.adminOnlyPermission", "freeframe.adminonly"))) {
+        if (frameType == FrameType.ADMIN_ONLY && !player.hasPermission(this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_TYPES_ADMINONLYPERMISSION))) {
             return PurchaseResult.blocked("freeframe.types.adminOnlyDenied", "%prefix% &cThis frame is restricted to admins.");
         }
 
@@ -68,7 +69,7 @@ public class DefaultPurchaseProcessor implements PurchaseProcessor {
 
         int amount = request.getProfile().getAmount();
         int availableStock = this.freeframe.getShopNetworkService().getAvailableStock(frameData);
-        if (this.freeframe.getPluginConfig().getBoolean("freeframe.chestRestock.enabled", true) && availableStock < amount) {
+        if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_CHESTRESTOCK_ENABLED) && availableStock < amount) {
             this.chestRestockService.restock(frameData, template);
             availableStock = this.freeframe.getShopNetworkService().getAvailableStock(frameData);
         }

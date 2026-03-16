@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 
 import java.util.ArrayList;
@@ -18,17 +19,17 @@ public class DynamicPricingService {
 
     public synchronized double apply(FreeFrameData frameData, double basePrice, int currentStock, int maxStock, long now) {
         double price = Math.max(0.0D, basePrice);
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.dynamicPricing.enabled", false) || price <= 0.0D || frameData == null) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DYNAMICPRICING_ENABLED) || price <= 0.0D || frameData == null) {
             return price;
         }
 
-        long windowMillis = Math.max(5_000L, this.freeframe.getPluginConfig().getLong("freeframe.dynamicPricing.windowMillis", 600_000L));
-        int threshold = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.dynamicPricing.demandThreshold", 5));
-        double demandStepPercent = Math.max(0.0D, this.freeframe.getPluginConfig().getDouble("freeframe.dynamicPricing.demandStepPercent", 2.5D));
-        double lowStockThresholdPercent = Math.max(1.0D, this.freeframe.getPluginConfig().getDouble("freeframe.dynamicPricing.lowStockThresholdPercent", 20.0D));
-        double lowStockBonusPercent = Math.max(0.0D, this.freeframe.getPluginConfig().getDouble("freeframe.dynamicPricing.lowStockBonusPercent", 5.0D));
-        double minMultiplier = Math.max(0.10D, this.freeframe.getPluginConfig().getDouble("freeframe.dynamicPricing.minMultiplier", 0.75D));
-        double maxMultiplier = Math.max(minMultiplier, this.freeframe.getPluginConfig().getDouble("freeframe.dynamicPricing.maxMultiplier", 2.5D));
+        long windowMillis = Math.max(5_000L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_DYNAMICPRICING_WINDOWMILLIS));
+        int threshold = Math.max(1, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_DYNAMICPRICING_DEMANDTHRESHOLD));
+        double demandStepPercent = Math.max(0.0D, this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_DYNAMICPRICING_DEMANDSTEPPERCENT));
+        double lowStockThresholdPercent = Math.max(1.0D, this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_DYNAMICPRICING_LOWSTOCKTHRESHOLDPERCENT));
+        double lowStockBonusPercent = Math.max(0.0D, this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_DYNAMICPRICING_LOWSTOCKBONUSPERCENT));
+        double minMultiplier = Math.max(0.10D, this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_DYNAMICPRICING_MINMULTIPLIER));
+        double maxMultiplier = Math.max(minMultiplier, this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_DYNAMICPRICING_MAXMULTIPLIER));
 
         String key = this.resolveDemandKey(frameData);
         int purchasesInWindow = this.countInWindow(key, now, windowMillis);

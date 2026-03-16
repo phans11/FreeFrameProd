@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.listener;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.utils.FreeFrameData;
 import org.bukkit.GameMode;
@@ -91,7 +92,7 @@ public class DestroyFrameListener implements Listener {
     }
 
     private boolean hasOwnerAccess(Player player, FreeFrameData frameData) {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.access.requireOwner", false)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_ACCESS_REQUIREOWNER)) {
             return true;
         }
 

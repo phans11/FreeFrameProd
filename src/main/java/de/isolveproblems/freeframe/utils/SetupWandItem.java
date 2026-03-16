@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -16,21 +17,18 @@ public final class SetupWandItem {
 
     public static ItemStack create(FreeFrame freeframe) {
         Material material = resolveMaterial(
-            freeframe.getPluginConfig().getString("freeframe.setup.wandMaterial", "BLAZE_ROD"),
+            freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_SETUP_WANDMATERIAL),
             Material.BLAZE_ROD
         );
 
-        int amount = Math.max(1, Math.min(64, freeframe.getPluginConfig().getInt("freeframe.setup.wandAmount", 1)));
+        int amount = Math.max(1, Math.min(64, freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_SETUP_WANDAMOUNT)));
         ItemStack item = new ItemStack(material, amount);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            String displayName = freeframe.colorize(freeframe.getPluginConfig().getString(
-                "freeframe.setup.wandName",
-                "&6FreeFrame Setup Wand"
-            ));
+            String displayName = freeframe.colorize(freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_SETUP_WANDNAME));
             meta.setDisplayName(displayName);
 
-            List<String> loreLines = freeframe.getPluginConfig().getStringList("freeframe.setup.wandLore");
+            List<String> loreLines = freeframe.cfgStringList(FreeFrameConfigKey.FREEFRAME_SETUP_WANDLORE);
             if (loreLines == null || loreLines.isEmpty()) {
                 loreLines = new ArrayList<String>();
                 loreLines.add("&7Right-click an ItemFrame to open the editor.");
@@ -49,7 +47,7 @@ public final class SetupWandItem {
 
     public static boolean isWand(FreeFrame freeframe, ItemStack itemStack) {
         Material configuredMaterial = resolveMaterial(
-            freeframe.getPluginConfig().getString("freeframe.setup.wandMaterial", "BLAZE_ROD"),
+            freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_SETUP_WANDMATERIAL),
             Material.BLAZE_ROD
         );
 
@@ -62,10 +60,7 @@ public final class SetupWandItem {
             return false;
         }
 
-        String configuredName = freeframe.colorize(freeframe.getPluginConfig().getString(
-            "freeframe.setup.wandName",
-            "&6FreeFrame Setup Wand"
-        ));
+        String configuredName = freeframe.colorize(freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_SETUP_WANDNAME));
 
         return ChatColor.stripColor(meta.getDisplayName()).equalsIgnoreCase(ChatColor.stripColor(configuredName));
     }

@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.DiscountService;
 import org.bukkit.configuration.ConfigurationSection;
@@ -18,7 +19,7 @@ public class DefaultDiscountService implements DiscountService {
             return Math.max(0.0D, basePrice);
         }
 
-        ConfigurationSection section = this.freeframe.getPluginConfig().getConfigurationSection("freeframe.discounts.permissions");
+        ConfigurationSection section = this.freeframe.cfgSection(FreeFrameConfigKey.FREEFRAME_DISCOUNTS_PERMISSIONS);
         double bestPercent = 0.0D;
         if (section != null) {
             for (String permission : section.getKeys(false)) {

@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.SaleMode;
 import de.isolveproblems.freeframe.economy.EconomyChargeResult;
@@ -23,10 +24,10 @@ public class AuctionService {
 
     public void start() {
         this.stop();
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.auction.enabled", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_AUCTION_ENABLED)) {
             return;
         }
-        long intervalTicks = Math.max(20L, this.freeframe.getPluginConfig().getLong("freeframe.auction.tickIntervalTicks", 40L));
+        long intervalTicks = Math.max(20L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_AUCTION_TICKINTERVALTICKS));
         this.task = Bukkit.getScheduler().runTaskTimer(this.freeframe, new Runnable() {
             @Override
             public void run() {
@@ -136,7 +137,7 @@ public class AuctionService {
 
         if (winner == null || !winner.isOnline()) {
             this.freeframe.getAlertService().alertAuctionIssue(frameData.getId(), "winner-offline");
-            frameData.setAuctionEndAt(System.currentTimeMillis() + Math.max(60_000L, this.freeframe.getPluginConfig().getLong("freeframe.auction.offlineGraceMillis", 300000L)));
+            frameData.setAuctionEndAt(System.currentTimeMillis() + Math.max(60_000L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_AUCTION_OFFLINEGRACEMILLIS)));
             this.freeframe.getFrameRegistry().saveToConfig();
             return;
         }

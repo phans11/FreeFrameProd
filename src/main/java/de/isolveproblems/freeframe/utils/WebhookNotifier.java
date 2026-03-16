@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.WebhookExportService;
 import org.bukkit.Bukkit;
@@ -111,12 +112,12 @@ public class WebhookNotifier implements WebhookExportService {
                 continue;
             }
 
-            int maxRetries = Math.max(0, this.freeframe.getPluginConfig().getInt("freeframe.webhooks.maxRetries", 3));
+            int maxRetries = Math.max(0, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_WEBHOOKS_MAXRETRIES));
             if (job.attempt >= maxRetries) {
                 continue;
             }
 
-            long baseDelay = Math.max(100L, this.freeframe.getPluginConfig().getLong("freeframe.webhooks.retryDelayMillis", 2000L));
+            long baseDelay = Math.max(100L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_WEBHOOKS_RETRYDELAYMILLIS));
             int nextAttempt = job.attempt + 1;
             long nextAt = System.currentTimeMillis() + (baseDelay * Math.max(1, nextAttempt));
             synchronized (this.queueLock) {
@@ -146,7 +147,7 @@ public class WebhookNotifier implements WebhookExportService {
             connection = (HttpURLConnection) new URL(endpoint).openConnection();
             connection.setRequestMethod("POST");
             connection.setDoOutput(true);
-            int timeoutMillis = Math.max(100, this.freeframe.getPluginConfig().getInt("freeframe.webhooks.timeoutMillis", 4000));
+            int timeoutMillis = Math.max(100, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_WEBHOOKS_TIMEOUTMILLIS));
             connection.setConnectTimeout(timeoutMillis);
             connection.setReadTimeout(timeoutMillis);
             connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
@@ -174,12 +175,12 @@ public class WebhookNotifier implements WebhookExportService {
 
     private List<String> resolveEndpoints() {
         List<String> endpoints = new ArrayList<String>();
-        for (String endpoint : this.freeframe.getPluginConfig().getStringList("freeframe.webhooks.endpoints")) {
+        for (String endpoint : this.freeframe.cfgStringList(FreeFrameConfigKey.FREEFRAME_WEBHOOKS_ENDPOINTS)) {
             if (endpoint != null && !endpoint.trim().isEmpty()) {
                 endpoints.add(endpoint.trim());
             }
         }
-        String discord = this.freeframe.getPluginConfig().getString("freeframe.webhooks.discordUrl", "");
+        String discord = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_WEBHOOKS_DISCORDURL);
         if (discord != null && !discord.trim().isEmpty()) {
             endpoints.add(discord.trim());
         }
@@ -187,9 +188,9 @@ public class WebhookNotifier implements WebhookExportService {
     }
 
     private String sign(String payload) {
-        String secret = this.freeframe.getPluginConfig().getString("freeframe.webhooks.secret", "");
+        String secret = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_WEBHOOKS_SECRET);
         if (secret == null || secret.trim().isEmpty()) {
-            secret = this.freeframe.getPluginConfig().getString("freeframe.security.secret", "");
+            secret = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_SECURITY_SECRET);
         }
         if (secret == null) {
             secret = "";
@@ -217,11 +218,11 @@ public class WebhookNotifier implements WebhookExportService {
     }
 
     private boolean isEnabled() {
-        return this.freeframe.getPluginConfig().getBoolean("freeframe.webhooks.enabled", false);
+        return this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_WEBHOOKS_ENABLED);
     }
 
     private String schemaVersion() {
-        return this.freeframe.getPluginConfig().getString("freeframe.webhooks.schemaVersion", "2.0");
+        return this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_WEBHOOKS_SCHEMAVERSION);
     }
 
     private String eventId() {

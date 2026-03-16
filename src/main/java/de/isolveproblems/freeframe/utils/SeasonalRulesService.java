@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import org.bukkit.configuration.ConfigurationSection;
 
@@ -95,11 +96,11 @@ public class SeasonalRulesService {
 
     private List<SeasonalRule> readRules() {
         List<SeasonalRule> rules = new ArrayList<SeasonalRule>();
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.seasons.enabled", false)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_SEASONS_ENABLED)) {
             return rules;
         }
 
-        ConfigurationSection section = this.freeframe.getPluginConfig().getConfigurationSection("freeframe.seasons.rules");
+        ConfigurationSection section = this.freeframe.cfgSection(FreeFrameConfigKey.FREEFRAME_SEASONS_RULES);
         if (section == null) {
             return rules;
         }
@@ -136,7 +137,7 @@ public class SeasonalRulesService {
         }
 
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.ENGLISH);
-        String timezone = this.freeframe.getPluginConfig().getString("freeframe.seasons.timezone", "UTC");
+        String timezone = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_SEASONS_TIMEZONE);
         try {
             format.setTimeZone(TimeZone.getTimeZone(timezone));
             Date date = format.parse(raw.trim());

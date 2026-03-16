@@ -18,6 +18,7 @@ import de.isolveproblems.freeframe.api.StatisticsService;
 import de.isolveproblems.freeframe.api.TransactionGuard;
 import de.isolveproblems.freeframe.api.WebhookExportService;
 import de.isolveproblems.freeframe.api.ZeroDowntimeMigrationService;
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.economy.VaultEconomyService;
 import de.isolveproblems.freeframe.utils.AlertService;
 import de.isolveproblems.freeframe.utils.AnalyticsUiService;
@@ -64,6 +65,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -146,7 +148,7 @@ public class FreeFrame extends JavaPlugin {
             this.frameRegistry.flushStorage();
         }
 
-        if (this.displayService != null && this.getPluginConfig().getBoolean("freeframe.display.removeOnDisable", false) && this.frameRegistry != null) {
+        if (this.displayService != null && this.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DISPLAY_REMOVEONDISABLE) && this.frameRegistry != null) {
             for (FreeFrameData frameData : this.frameRegistry.listFrames()) {
                 this.displayService.remove(frameData);
             }
@@ -279,7 +281,7 @@ public class FreeFrame extends JavaPlugin {
     }
 
     private void initializeOptionalBStats() {
-        int pluginId = this.getPluginConfig().getInt("freeframe.metrics.bstatsPluginId", 0);
+        int pluginId = this.cfgInt(FreeFrameConfigKey.FREEFRAME_METRICS_BSTATSPLUGINID);
         if (pluginId <= 0) {
             return;
         }
@@ -466,12 +468,59 @@ public class FreeFrame extends JavaPlugin {
         return this.configHandler.getConfig();
     }
 
+    public boolean cfgBoolean(FreeFrameConfigKey key) {
+        return this.configHandler.getConfigApi().getBoolean(key);
+    }
+
+    public int cfgInt(FreeFrameConfigKey key) {
+        return this.configHandler.getConfigApi().getInt(key);
+    }
+
+    public long cfgLong(FreeFrameConfigKey key) {
+        return this.configHandler.getConfigApi().getLong(key);
+    }
+
+    public double cfgDouble(FreeFrameConfigKey key) {
+        return this.configHandler.getConfigApi().getDouble(key);
+    }
+
+    public String cfgString(FreeFrameConfigKey key) {
+        return this.configHandler.getConfigApi().getString(key);
+    }
+
+    public List<String> cfgStringList(FreeFrameConfigKey key) {
+        return this.configHandler.getConfigApi().getStringList(key);
+    }
+
+    public List<Integer> cfgIntegerList(FreeFrameConfigKey key) {
+        return this.getPluginConfig().getIntegerList(key.path());
+    }
+
+    public List<?> cfgList(FreeFrameConfigKey key) {
+        return this.getPluginConfig().getList(key.path());
+    }
+
+    public ConfigurationSection cfgSection(FreeFrameConfigKey key) {
+        return this.getPluginConfig().getConfigurationSection(key.path());
+    }
+
+    public ConfigurationSection cfgSection(FreeFrameConfigKey key, String childPath) {
+        return this.getPluginConfig().getConfigurationSection(this.cfgPath(key, childPath));
+    }
+
+    public String cfgPath(FreeFrameConfigKey key, String childPath) {
+        if (childPath == null || childPath.trim().isEmpty()) {
+            return key.path();
+        }
+        return key.path() + "." + childPath;
+    }
+
     public int getConfiguredItemAmount() {
-        return AmountValidator.sanitize(this.getPluginConfig().getInt("freeframe.item.amount", 1));
+        return AmountValidator.sanitize(this.cfgInt(FreeFrameConfigKey.FREEFRAME_ITEM_AMOUNT));
     }
 
     public int getGuiInventorySize() {
-        int size = this.getPluginConfig().getInt("freeframe.gui.inventory.size", 9);
+        int size = this.cfgInt(FreeFrameConfigKey.FREEFRAME_GUI_INVENTORY_SIZE);
         if (size < 9) {
             return 9;
         }
@@ -485,7 +534,7 @@ public class FreeFrame extends JavaPlugin {
     }
 
     public List<Integer> getSaleSlots() {
-        List<Integer> configured = this.getPluginConfig().getIntegerList("freeframe.gui.saleSlots");
+        List<Integer> configured = this.cfgIntegerList(FreeFrameConfigKey.FREEFRAME_GUI_SALESLOTS);
         if (configured == null || configured.isEmpty()) {
             List<Integer> defaults = new ArrayList<Integer>();
             defaults.add(2);
@@ -512,8 +561,8 @@ public class FreeFrame extends JavaPlugin {
 
     public List<PurchaseProfile> getDefaultPurchaseProfiles(double basePrice) {
         List<Integer> slots = this.getSaleSlots();
-        List<Integer> amounts = this.getPluginConfig().getIntegerList("freeframe.profiles.amounts");
-        List<Double> multipliers = this.readDoubleList("freeframe.profiles.priceMultipliers");
+        List<Integer> amounts = this.cfgIntegerList(FreeFrameConfigKey.FREEFRAME_PROFILES_AMOUNTS);
+        List<Double> multipliers = this.readDoubleList(FreeFrameConfigKey.FREEFRAME_PROFILES_PRICEMULTIPLIERS);
         List<PurchaseProfile> profiles = new ArrayList<PurchaseProfile>();
 
         for (int index = 0; index < slots.size(); index++) {
@@ -530,8 +579,8 @@ public class FreeFrame extends JavaPlugin {
         return profiles;
     }
 
-    private List<Double> readDoubleList(String path) {
-        List<?> raw = this.getPluginConfig().getList(path);
+    private List<Double> readDoubleList(FreeFrameConfigKey key) {
+        List<?> raw = this.cfgList(key);
         List<Double> doubles = new ArrayList<Double>();
         if (raw == null) {
             return doubles;
@@ -559,11 +608,11 @@ public class FreeFrame extends JavaPlugin {
     }
 
     public OfferMode getOfferMode() {
-        return OfferMode.fromString(this.getPluginConfig().getString("freeframe.shops.offerMode", "BOTH"));
+        return OfferMode.fromString(this.cfgString(FreeFrameConfigKey.FREEFRAME_SHOPS_OFFERMODE));
     }
 
     public String getGuiTitle(Player player) {
-        String template = this.getPluginConfig().getString("freeframe.gui.title", "%prefix%");
+        String template = this.cfgString(FreeFrameConfigKey.FREEFRAME_GUI_TITLE);
         return this.formatMessage(template, player);
     }
 
@@ -576,7 +625,7 @@ public class FreeFrame extends JavaPlugin {
             return false;
         }
 
-        if (!this.getPluginConfig().getBoolean("freeframe.access.requireOwner", false)) {
+        if (!this.cfgBoolean(FreeFrameConfigKey.FREEFRAME_ACCESS_REQUIREOWNER)) {
             return true;
         }
 
@@ -596,7 +645,7 @@ public class FreeFrame extends JavaPlugin {
             return true;
         }
 
-        if (!this.getPluginConfig().getBoolean("freeframe.ownerManagement.enabled", true)) {
+        if (!this.cfgBoolean(FreeFrameConfigKey.FREEFRAME_OWNERMANAGEMENT_ENABLED)) {
             return false;
         }
         if (!player.hasPermission("freeframe.owner.manage")) {
@@ -630,7 +679,7 @@ public class FreeFrame extends JavaPlugin {
     }
 
     public String getPrefix() {
-        String prefix = this.getPluginConfig().getString("freeframe.prefix", DEFAULT_PREFIX);
+        String prefix = this.cfgString(FreeFrameConfigKey.FREEFRAME_PREFIX);
         return this.colorize(prefix);
     }
 

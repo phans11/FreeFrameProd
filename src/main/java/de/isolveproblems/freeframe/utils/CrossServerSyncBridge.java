@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.NetworkSyncService;
 import org.bukkit.Bukkit;
@@ -37,13 +38,13 @@ public class CrossServerSyncBridge implements NetworkSyncService, PluginMessageL
     public synchronized void start() {
         this.stop();
 
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.networkSync.enabled", false)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_ENABLED)) {
             this.runtimeMode = "none";
             return;
         }
 
-        this.runtimeMode = this.freeframe.getPluginConfig().getString("freeframe.networkSync.mode", "none").trim().toLowerCase(Locale.ENGLISH);
-        this.bridgeChannel = this.freeframe.getPluginConfig().getString("freeframe.networkSync.bridgeChannel", "freeframe-sync");
+        this.runtimeMode = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_MODE).trim().toLowerCase(Locale.ENGLISH);
+        this.bridgeChannel = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_BRIDGECHANNEL);
         if (this.bridgeChannel == null || this.bridgeChannel.trim().isEmpty()) {
             this.bridgeChannel = "freeframe-sync";
         }
@@ -80,7 +81,7 @@ public class CrossServerSyncBridge implements NetworkSyncService, PluginMessageL
 
     @Override
     public synchronized void publishFrameUpdate(FreeFrameData frameData, String reason) {
-        if (frameData == null || !this.freeframe.getPluginConfig().getBoolean("freeframe.networkSync.enabled", false)) {
+        if (frameData == null || !this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_ENABLED)) {
             return;
         }
         String eventId = UUID.randomUUID().toString().replace("-", "");
@@ -165,7 +166,7 @@ public class CrossServerSyncBridge implements NetworkSyncService, PluginMessageL
         }
         this.filePointer = 0L;
 
-        long periodTicks = Math.max(20L, this.freeframe.getPluginConfig().getLong("freeframe.networkSync.filePollTicks", 100L));
+        long periodTicks = Math.max(20L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_FILEPOLLTICKS));
         this.fileTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(this.freeframe, new Runnable() {
             @Override
             public void run() {
@@ -233,14 +234,14 @@ public class CrossServerSyncBridge implements NetworkSyncService, PluginMessageL
             double price = Double.parseDouble(parts[4]);
             double revenue = Double.parseDouble(parts[5]);
 
-            if (this.freeframe.getPluginConfig().getBoolean("freeframe.networkSync.applyStock", true)) {
+            if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_APPLYSTOCK)) {
                 frameData.setMaxStock(maxStock);
                 frameData.setStock(stock);
             }
-            if (this.freeframe.getPluginConfig().getBoolean("freeframe.networkSync.applyPrice", false)) {
+            if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_APPLYPRICE)) {
                 frameData.setPrice(price);
             }
-            if (this.freeframe.getPluginConfig().getBoolean("freeframe.networkSync.applyRevenue", false)) {
+            if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_APPLYREVENUE)) {
                 frameData.setRevenueTotal(Math.max(frameData.getRevenueTotal(), revenue));
             }
             this.freeframe.getDisplayService().refresh(frameData);
@@ -310,7 +311,7 @@ public class CrossServerSyncBridge implements NetworkSyncService, PluginMessageL
     }
 
     private String resolveVelocityChannel() {
-        String configured = this.freeframe.getPluginConfig().getString("freeframe.proxy.velocity.channel", "freeframe:sync");
+        String configured = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_PROXY_VELOCITY_CHANNEL);
         if (configured == null || configured.trim().isEmpty()) {
             return "freeframe:sync";
         }
@@ -331,12 +332,12 @@ public class CrossServerSyncBridge implements NetworkSyncService, PluginMessageL
         if (seenAt == null) {
             return false;
         }
-        long ttl = Math.max(10000L, this.freeframe.getPluginConfig().getLong("freeframe.networkSync.eventTtlMillis", 180000L));
+        long ttl = Math.max(10000L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_EVENTTTLMILLIS));
         return System.currentTimeMillis() - seenAt.longValue() <= ttl;
     }
 
     private void pruneEvents(long now) {
-        long ttl = Math.max(10000L, this.freeframe.getPluginConfig().getLong("freeframe.networkSync.eventTtlMillis", 180000L));
+        long ttl = Math.max(10000L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_EVENTTTLMILLIS));
         for (Map.Entry<String, Long> entry : new HashMap<String, Long>(this.recentEventIds).entrySet()) {
             if (now - entry.getValue().longValue() > ttl) {
                 this.recentEventIds.remove(entry.getKey());

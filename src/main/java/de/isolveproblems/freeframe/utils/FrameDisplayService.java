@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -36,12 +37,12 @@ public class FrameDisplayService {
             return;
         }
 
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.display.enabled", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DISPLAY_ENABLED)) {
             this.remove(frameData);
             return;
         }
 
-        if (this.freeframe.getPluginConfig().getBoolean("freeframe.display.onlyWhenInStock", false) && frameData.getStock() <= 0) {
+        if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DISPLAY_ONLYWHENINSTOCK) && frameData.getStock() <= 0) {
             this.remove(frameData);
             return;
         }
@@ -63,11 +64,11 @@ public class FrameDisplayService {
         }
 
         stand.teleport(displayLocation);
-        stand.setVisible(this.freeframe.getPluginConfig().getBoolean("freeframe.display.armorStand.visible", false));
-        stand.setGravity(this.freeframe.getPluginConfig().getBoolean("freeframe.display.armorStand.gravity", false));
-        stand.setCustomNameVisible(this.freeframe.getPluginConfig().getBoolean("freeframe.display.armorStand.customNameVisible", true));
+        stand.setVisible(this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DISPLAY_ARMORSTAND_VISIBLE));
+        stand.setGravity(this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DISPLAY_ARMORSTAND_GRAVITY));
+        stand.setCustomNameVisible(this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DISPLAY_ARMORSTAND_CUSTOMNAMEVISIBLE));
         stand.setCustomName(this.buildDisplayName(frameData));
-        stand.setSmall(this.freeframe.getPluginConfig().getBoolean("freeframe.display.armorStand.small", true));
+        stand.setSmall(this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DISPLAY_ARMORSTAND_SMALL));
         this.trySetMarker(stand);
 
         frameData.setDisplayEntityUuid(stand.getUniqueId().toString());
@@ -127,7 +128,7 @@ public class FrameDisplayService {
 
         int chunkX = reference.getX() >> 4;
         int chunkZ = reference.getZ() >> 4;
-        boolean loadChunk = this.freeframe.getPluginConfig().getBoolean("freeframe.display.loadChunk", false);
+        boolean loadChunk = this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DISPLAY_LOADCHUNK);
         if (!world.isChunkLoaded(chunkX, chunkZ) && (!loadChunk || !world.loadChunk(chunkX, chunkZ, false))) {
             return null;
         }
@@ -174,7 +175,7 @@ public class FrameDisplayService {
     }
 
     private void trySetMarker(ArmorStand stand) {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.display.armorStand.marker", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_DISPLAY_ARMORSTAND_MARKER)) {
             return;
         }
 
@@ -186,9 +187,9 @@ public class FrameDisplayService {
     }
 
     private Location resolveDisplayLocation(Location frameLocation) {
-        double offsetX = this.freeframe.getPluginConfig().getDouble("freeframe.display.offset.x", 0.5D);
-        double offsetY = this.freeframe.getPluginConfig().getDouble("freeframe.display.offset.y", 0.45D);
-        double offsetZ = this.freeframe.getPluginConfig().getDouble("freeframe.display.offset.z", 0.5D);
+        double offsetX = this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_DISPLAY_OFFSET_X);
+        double offsetY = this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_DISPLAY_OFFSET_Y);
+        double offsetZ = this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_DISPLAY_OFFSET_Z);
         return frameLocation.clone().add(offsetX, offsetY, offsetZ);
     }
 }

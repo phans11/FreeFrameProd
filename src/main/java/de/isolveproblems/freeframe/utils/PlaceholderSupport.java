@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -20,7 +21,7 @@ public class PlaceholderSupport {
         }
 
         String replaced = this.applyInternalPlaceholders(player, input);
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.placeholderapi.enabled", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_PLACEHOLDERAPI_ENABLED)) {
             return replaced;
         }
 

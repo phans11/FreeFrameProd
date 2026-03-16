@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.BuyerReputationService;
 import de.isolveproblems.freeframe.api.BuyerRiskProfile;
@@ -27,8 +28,8 @@ public class BuyerReputationManager implements BuyerReputationService {
 
         String playerId = player.getUniqueId().toString();
         double score = this.computeScore(playerId, Math.max(0.0D, expectedGrossPrice));
-        double threshold = Math.max(0.0D, this.freeframe.getPluginConfig().getDouble("freeframe.reputation.blockThreshold", 85.0D));
-        boolean enabled = this.freeframe.getPluginConfig().getBoolean("freeframe.reputation.enabled", true);
+        double threshold = Math.max(0.0D, this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_REPUTATION_BLOCKTHRESHOLD));
+        boolean enabled = this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_REPUTATION_ENABLED);
         boolean blocked = enabled && score >= threshold;
         String reason = blocked
             ? "risk-score=" + String.format(Locale.ENGLISH, "%.2f", score) + " threshold=" + String.format(Locale.ENGLISH, "%.2f", threshold)
@@ -91,8 +92,8 @@ public class BuyerReputationManager implements BuyerReputationService {
             return new BuyerRiskProfile("unknown", 0.0D, false, "");
         }
         double score = this.computeScore(playerId, 0.0D);
-        double threshold = Math.max(0.0D, this.freeframe.getPluginConfig().getDouble("freeframe.reputation.blockThreshold", 85.0D));
-        boolean blocked = this.freeframe.getPluginConfig().getBoolean("freeframe.reputation.enabled", true) && score >= threshold;
+        double threshold = Math.max(0.0D, this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_REPUTATION_BLOCKTHRESHOLD));
+        boolean blocked = this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_REPUTATION_ENABLED) && score >= threshold;
         return new BuyerRiskProfile(playerId, score, blocked, blocked ? "threshold reached" : "");
     }
 
@@ -104,12 +105,12 @@ public class BuyerReputationManager implements BuyerReputationService {
         long duplicate = Math.max(0L, this.configApi.getConfig().getLong(base + ".reasons.duplicate", 0L));
         long invalidSig = Math.max(0L, this.configApi.getConfig().getLong(base + ".reasons.invalid-signature", 0L));
 
-        double failureWeight = this.freeframe.getPluginConfig().getDouble("freeframe.reputation.weights.failure", 8.0D);
-        double duplicateWeight = this.freeframe.getPluginConfig().getDouble("freeframe.reputation.weights.duplicate", 5.0D);
-        double invalidSigWeight = this.freeframe.getPluginConfig().getDouble("freeframe.reputation.weights.invalidSignature", 16.0D);
-        double successDecay = this.freeframe.getPluginConfig().getDouble("freeframe.reputation.weights.successDecay", 0.25D);
-        double highValueWeight = this.freeframe.getPluginConfig().getDouble("freeframe.reputation.weights.highValuePurchase", 4.0D);
-        double highValueThreshold = Math.max(0.0D, this.freeframe.getPluginConfig().getDouble("freeframe.reputation.highValueThreshold", 500.0D));
+        double failureWeight = this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_REPUTATION_WEIGHTS_FAILURE);
+        double duplicateWeight = this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_REPUTATION_WEIGHTS_DUPLICATE);
+        double invalidSigWeight = this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_REPUTATION_WEIGHTS_INVALIDSIGNATURE);
+        double successDecay = this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_REPUTATION_WEIGHTS_SUCCESSDECAY);
+        double highValueWeight = this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_REPUTATION_WEIGHTS_HIGHVALUEPURCHASE);
+        double highValueThreshold = Math.max(0.0D, this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_REPUTATION_HIGHVALUETHRESHOLD));
 
         double score = manual;
         score += failure * Math.max(0.0D, failureWeight);

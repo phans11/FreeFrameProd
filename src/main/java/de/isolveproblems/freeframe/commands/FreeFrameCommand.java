@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.commands;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.BuyerRiskProfile;
 import de.isolveproblems.freeframe.api.FrameType;
@@ -574,7 +575,7 @@ public class FreeFrameCommand implements TabExecutor {
 
     private void handleList(CommandSender sender, String[] args) {
         int page = this.parsePageArg(args, 1);
-        int pageSize = Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.admin.listPageSize", 8));
+        int pageSize = Math.max(1, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_ADMIN_LISTPAGESIZE));
 
         List<FreeFrameData> frames = this.freeframe.getFrameRegistry().listFrames();
         if (frames.isEmpty()) {
@@ -1118,7 +1119,7 @@ public class FreeFrameCommand implements TabExecutor {
             sender.sendMessage(this.freeframe.formatMessage("%prefix% &cOnly players can open analytics UI."));
             return;
         }
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.analytics.enabled", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_ANALYTICS_ENABLED)) {
             sender.sendMessage(this.freeframe.formatMessage("%prefix% &cAnalytics UI is disabled in config."));
             return;
         }
@@ -1369,7 +1370,7 @@ public class FreeFrameCommand implements TabExecutor {
     }
 
     private void handleModeration(CommandSender sender, String[] args) {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.moderation.enabled", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_MODERATION_ENABLED)) {
             sender.sendMessage(this.freeframe.formatMessage("%prefix% &cModeration features are disabled."));
             return;
         }
@@ -1390,7 +1391,7 @@ public class FreeFrameCommand implements TabExecutor {
                 sender.sendMessage(this.unknownFrameMessage(args[3]));
                 return;
             }
-            boolean ownerAllowed = this.freeframe.getPluginConfig().getBoolean("freeframe.moderation.allowOwnerFrameFreeze", true);
+            boolean ownerAllowed = this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_MODERATION_ALLOWOWNERFRAMEFREEZE);
             boolean ownerCanManage = this.canManageOrAdmin(sender, data);
             if (!ownerCanManage || (!this.hasAdminPermission(sender) && !ownerAllowed)) {
                 sender.sendMessage(this.freeframe.getErrorPermissionMessage());
@@ -1548,7 +1549,7 @@ public class FreeFrameCommand implements TabExecutor {
             sender.sendMessage(this.freeframe.getErrorPermissionMessage());
             return;
         }
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.migration.zeroDowntime.enabled", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_MIGRATION_ZERODOWNTIME_ENABLED)) {
             sender.sendMessage(this.freeframe.formatMessage("%prefix% &cZero-downtime migration is disabled in config."));
             return;
         }
@@ -1686,7 +1687,7 @@ public class FreeFrameCommand implements TabExecutor {
         this.freeframe.getPluginConfig().set("freeframe.storage.type", requested);
         this.freeframe.getConfigHandler().getConfigApi().saveConfig();
         this.freeframe.reloadRuntimeState();
-        boolean migrateOnSwitch = this.freeframe.getPluginConfig().getBoolean("freeframe.storage.migrateOnSwitch", true);
+        boolean migrateOnSwitch = this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_STORAGE_MIGRATEONSWITCH);
         if (migrateOnSwitch && this.freeframe.getFrameRegistry().size() == 0 && !backup.isEmpty()) {
             this.freeframe.getFrameRegistry().replaceAll(backup);
         }
@@ -1879,10 +1880,7 @@ public class FreeFrameCommand implements TabExecutor {
     }
 
     private String unknownFrameMessage(String id) {
-        String template = this.freeframe.getPluginConfig().getString(
-            "freeframe.error.unknownFrame",
-            "%prefix% &cNo FreeFrame found for id &e%id%&c."
-        );
+        String template = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_ERROR_UNKNOWNFRAME);
         if (template == null) {
             template = "%prefix% &cNo FreeFrame found for id &e%id%&c.";
         }

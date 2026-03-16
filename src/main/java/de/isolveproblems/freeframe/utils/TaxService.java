@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.ShopOwnerType;
 
@@ -15,7 +16,7 @@ public class TaxService {
 
     public TaxBreakdown calculate(FreeFrameData frameData, double grossPrice, Double seasonalOverridePercent) {
         double gross = Math.max(0.0D, grossPrice);
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.tax.enabled", false) || gross <= 0.0D) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_TAX_ENABLED) || gross <= 0.0D) {
             return new TaxBreakdown(gross, 0.0D, 0.0D);
         }
 
@@ -25,17 +26,15 @@ public class TaxService {
         } else {
             ShopOwnerType ownerType = frameData == null ? ShopOwnerType.USER : frameData.getShopOwnerType();
             if (ownerType == ShopOwnerType.ADMIN) {
-                percent = this.freeframe.getPluginConfig().getDouble("freeframe.tax.adminShopPercent",
-                    this.freeframe.getPluginConfig().getDouble("freeframe.tax.defaultPercent", 0.0D));
+                percent = this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_TAX_ADMINSHOPPERCENT);
             } else {
-                percent = this.freeframe.getPluginConfig().getDouble("freeframe.tax.userShopPercent",
-                    this.freeframe.getPluginConfig().getDouble("freeframe.tax.defaultPercent", 0.0D));
+                percent = this.freeframe.cfgDouble(FreeFrameConfigKey.FREEFRAME_TAX_USERSHOPPERCENT);
             }
         }
 
         percent = Math.max(0.0D, Math.min(100.0D, percent));
         double tax = gross * (percent / 100.0D);
-        if (this.freeframe.getPluginConfig().getBoolean("freeframe.tax.roundToCents", true)) {
+        if (this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_TAX_ROUNDTOCENTS)) {
             tax = roundCurrency(tax);
         }
         return new TaxBreakdown(gross, tax, percent);
@@ -46,14 +45,14 @@ public class TaxService {
         if (tax <= 0.0D) {
             return;
         }
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.tax.depositToAccount", false)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_TAX_DEPOSITTOACCOUNT)) {
             return;
         }
         if (!this.freeframe.getEconomyService().isAvailable()) {
             return;
         }
 
-        String accountName = this.freeframe.getPluginConfig().getString("freeframe.tax.serverAccountName", "server");
+        String accountName = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_TAX_SERVERACCOUNTNAME);
         if (accountName == null || accountName.trim().isEmpty()) {
             accountName = "server";
         }

@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -22,8 +23,8 @@ public class AuditLogger {
     }
 
     public void logPurchase(Player player, FreeFrameData frameData, int amount, double price, String result) {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.logging.enabled", true)
-            || !this.freeframe.getPluginConfig().getBoolean("freeframe.logging.purchaseEnabled", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_LOGGING_ENABLED)
+            || !this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_LOGGING_PURCHASEENABLED)) {
             return;
         }
 
@@ -44,8 +45,8 @@ public class AuditLogger {
     }
 
     public void logAdminAction(CommandSender sender, String action, String details) {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.logging.enabled", true)
-            || !this.freeframe.getPluginConfig().getBoolean("freeframe.logging.adminEnabled", true)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_LOGGING_ENABLED)
+            || !this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_LOGGING_ADMINENABLED)) {
             return;
         }
 
@@ -58,7 +59,7 @@ public class AuditLogger {
     }
 
     public File exportSnapshot(List<FreeFrameData> frames, Map<String, Long> metrics) {
-        String exportDirectory = this.freeframe.getPluginConfig().getString("freeframe.logging.exportDirectory", "exports");
+        String exportDirectory = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_LOGGING_EXPORTDIRECTORY);
         if (exportDirectory == null || exportDirectory.trim().isEmpty()) {
             exportDirectory = "exports";
         }
@@ -104,7 +105,7 @@ public class AuditLogger {
     }
 
     private File resolveLogFile() {
-        String loggingDirectory = this.freeframe.getPluginConfig().getString("freeframe.logging.directory", "logs");
+        String loggingDirectory = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_LOGGING_DIRECTORY);
         if (loggingDirectory == null || loggingDirectory.trim().isEmpty()) {
             loggingDirectory = "logs";
         }
@@ -114,11 +115,11 @@ public class AuditLogger {
             return new File(this.freeframe.getDataFolder(), "freeframe.log");
         }
 
-        String filePrefix = this.freeframe.getPluginConfig().getString("freeframe.logging.filePrefix", "audit");
+        String filePrefix = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_LOGGING_FILEPREFIX);
         if (filePrefix == null || filePrefix.trim().isEmpty()) {
             filePrefix = "audit";
         }
-        String extension = this.freeframe.getPluginConfig().getString("freeframe.logging.extension", ".csv");
+        String extension = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_LOGGING_EXTENSION);
         if (extension == null || extension.trim().isEmpty()) {
             extension = ".csv";
         }

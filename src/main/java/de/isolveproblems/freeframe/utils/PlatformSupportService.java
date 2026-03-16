@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
@@ -46,9 +47,9 @@ public class PlatformSupportService {
         values.put("runtime", runtime);
         values.put("paperApi", String.valueOf("paper".equals(runtime) || "purpur".equals(runtime)));
         values.put("cauldronCompat", String.valueOf("cauldron".equals(runtime)));
-        values.put("proxyBungeeEnabled", String.valueOf(this.freeframe.getPluginConfig().getBoolean("freeframe.proxy.bungeecord.enabled", false)));
-        values.put("proxyVelocityEnabled", String.valueOf(this.freeframe.getPluginConfig().getBoolean("freeframe.proxy.velocity.enabled", false)));
-        values.put("networkSyncMode", this.freeframe.getPluginConfig().getString("freeframe.networkSync.mode", "none"));
+        values.put("proxyBungeeEnabled", String.valueOf(this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_PROXY_BUNGEECORD_ENABLED)));
+        values.put("proxyVelocityEnabled", String.valueOf(this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_PROXY_VELOCITY_ENABLED)));
+        values.put("networkSyncMode", this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_NETWORKSYNC_MODE));
         return values;
     }
 

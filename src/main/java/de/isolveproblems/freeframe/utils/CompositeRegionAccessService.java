@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.RegionAccessService;
 import org.bukkit.Location;
@@ -28,11 +29,11 @@ public class CompositeRegionAccessService implements RegionAccessService {
 
     private boolean checkWorldGuard(Location location, Player player) {
         Plugin plugin = this.freeframe.getServer().getPluginManager().getPlugin("WorldGuard");
-        if (plugin == null || !this.freeframe.getPluginConfig().getBoolean("freeframe.integrations.worldguard.enabled", true)) {
+        if (plugin == null || !this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_INTEGRATIONS_WORLDGUARD_ENABLED)) {
             return true;
         }
 
-        String flagName = this.freeframe.getPluginConfig().getString("freeframe.integrations.worldguard.requiredFlag", "");
+        String flagName = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_INTEGRATIONS_WORLDGUARD_REQUIREDFLAG);
         if (flagName == null || flagName.trim().isEmpty() || location == null) {
             return true;
         }
@@ -54,11 +55,11 @@ public class CompositeRegionAccessService implements RegionAccessService {
 
     private boolean checkGriefPrevention(Location location, Player player) {
         Plugin plugin = this.freeframe.getServer().getPluginManager().getPlugin("GriefPrevention");
-        if (plugin == null || !this.freeframe.getPluginConfig().getBoolean("freeframe.integrations.griefprevention.enabled", true)) {
+        if (plugin == null || !this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_INTEGRATIONS_GRIEFPREVENTION_ENABLED)) {
             return true;
         }
 
-        String mode = this.freeframe.getPluginConfig().getString("freeframe.integrations.griefprevention.mode", "allow-any");
+        String mode = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_INTEGRATIONS_GRIEFPREVENTION_MODE);
         if (!"owner-or-public".equalsIgnoreCase(mode) || location == null) {
             return true;
         }

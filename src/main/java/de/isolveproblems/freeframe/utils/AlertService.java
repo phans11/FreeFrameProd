@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import org.bukkit.Bukkit;
 import org.bukkit.command.ConsoleCommandSender;
@@ -19,7 +20,7 @@ public class AlertService {
         if (frameData == null) {
             return;
         }
-        int threshold = Math.max(0, this.freeframe.getPluginConfig().getInt("freeframe.alerts.lowStockThreshold", 5));
+        int threshold = Math.max(0, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_ALERTS_LOWSTOCKTHRESHOLD));
         if (frameData.getStock() > threshold) {
             return;
         }
@@ -35,12 +36,12 @@ public class AlertService {
     }
 
     private void alert(String key, String message) {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.alerts.enabled", false)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_ALERTS_ENABLED)) {
             return;
         }
 
         long now = System.currentTimeMillis();
-        long cooldown = Math.max(1000L, this.freeframe.getPluginConfig().getLong("freeframe.alerts.cooldownMillis", 120000L));
+        long cooldown = Math.max(1000L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_ALERTS_COOLDOWNMILLIS));
         Long last = this.cooldownByKey.get(key);
         if (last != null && now - last.longValue() < cooldown) {
             return;

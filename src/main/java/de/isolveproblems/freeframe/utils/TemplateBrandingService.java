@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.BrandingService;
 import de.isolveproblems.freeframe.api.ShopOwnerType;
@@ -24,15 +25,12 @@ public class TemplateBrandingService implements BrandingService {
         String themeId = forcedThemeId == null || forcedThemeId.trim().isEmpty()
             ? this.resolveThemeId(frameData)
             : forcedThemeId.trim().toLowerCase(Locale.ENGLISH);
-        String fallback = this.freeframe.getPluginConfig().getString(
-            "freeframe.display.template",
-            "&e%item% &7| &6%currency%%price% &7| &bStock: %stock%"
-        );
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.branding.enabled", false)) {
+        String fallback = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_DISPLAY_TEMPLATE);
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_BRANDING_ENABLED)) {
             return fallback;
         }
 
-        ConfigurationSection section = this.freeframe.getPluginConfig().getConfigurationSection("freeframe.branding.themes." + themeId);
+        ConfigurationSection section = this.freeframe.cfgSection(FreeFrameConfigKey.FREEFRAME_BRANDING_THEMES, themeId);
         if (section == null) {
             return fallback;
         }
@@ -42,7 +40,7 @@ public class TemplateBrandingService implements BrandingService {
 
     @Override
     public String resolveThemeId(FreeFrameData frameData) {
-        if (!this.freeframe.getPluginConfig().getBoolean("freeframe.branding.enabled", false)) {
+        if (!this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_BRANDING_ENABLED)) {
             return "";
         }
 
@@ -51,17 +49,17 @@ public class TemplateBrandingService implements BrandingService {
         }
 
         if (frameData != null && frameData.getShopOwnerType() == ShopOwnerType.ADMIN) {
-            String adminDefault = this.freeframe.getPluginConfig().getString("freeframe.branding.defaultAdminTheme", "");
+            String adminDefault = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_BRANDING_DEFAULTADMINTHEME);
             if (adminDefault != null && !adminDefault.trim().isEmpty()) {
                 return adminDefault.trim().toLowerCase(Locale.ENGLISH);
             }
         }
 
-        String userDefault = this.freeframe.getPluginConfig().getString("freeframe.branding.defaultUserTheme", "");
+        String userDefault = this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_BRANDING_DEFAULTUSERTHEME);
         if (userDefault != null && !userDefault.trim().isEmpty()) {
             return userDefault.trim().toLowerCase(Locale.ENGLISH);
         }
-        return this.freeframe.getPluginConfig().getString("freeframe.branding.defaultTheme", "classic")
+        return this.freeframe.cfgString(FreeFrameConfigKey.FREEFRAME_BRANDING_DEFAULTTHEME)
             .trim()
             .toLowerCase(Locale.ENGLISH);
     }

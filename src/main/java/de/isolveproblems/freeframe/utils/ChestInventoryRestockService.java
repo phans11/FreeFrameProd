@@ -1,5 +1,6 @@
 package de.isolveproblems.freeframe.utils;
 
+import de.isolveproblems.freeframe.config.FreeFrameConfigKey;
 import de.isolveproblems.freeframe.FreeFrame;
 import de.isolveproblems.freeframe.api.ChestRestockService;
 import de.isolveproblems.freeframe.api.RestockRouteReport;
@@ -116,7 +117,7 @@ public class ChestInventoryRestockService implements ChestRestockService, Restoc
 
         int radius = this.freeframe == null
             ? 1
-            : Math.max(1, this.freeframe.getPluginConfig().getInt("freeframe.chestRestock.route.scanRadius", 2));
+            : Math.max(1, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_CHESTRESTOCK_ROUTE_SCANRADIUS));
         int baseX = frameData.getReference().getX();
         int baseY = frameData.getReference().getY();
         int baseZ = frameData.getReference().getZ();
@@ -140,7 +141,7 @@ public class ChestInventoryRestockService implements ChestRestockService, Restoc
     }
 
     private void addNetworkRouteNodes(FreeFrameData frameData, List<RouteNode> route, Set<String> seen) {
-        if (this.freeframe == null || !this.freeframe.getPluginConfig().getBoolean("freeframe.chestRestock.route.networkEnabled", true)) {
+        if (this.freeframe == null || !this.freeframe.cfgBoolean(FreeFrameConfigKey.FREEFRAME_CHESTRESTOCK_ROUTE_NETWORKENABLED)) {
             return;
         }
         if (frameData.getNetworkId() == null || frameData.getNetworkId().trim().isEmpty()) {
