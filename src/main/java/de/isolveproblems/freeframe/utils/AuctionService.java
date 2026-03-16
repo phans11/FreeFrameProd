@@ -10,12 +10,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 public class AuctionService {
     private final FreeFrame freeframe;
+    private final Map<String, Integer> offlineRetryCountByFrame = new HashMap<String, Integer>();
     private BukkitTask task;
 
     public AuctionService(FreeFrame freeframe) {
@@ -47,6 +50,7 @@ public class AuctionService {
         if (frameData == null || durationMillis <= 0L) {
             return false;
         }
+        this.clearOfflineRetryCount(frameData.getId());
         frameData.setSaleMode(SaleMode.AUCTION);
         frameData.setAuctionEndAt(System.currentTimeMillis() + durationMillis);
         frameData.setAuctionMinBid(Math.max(0.0D, minBid));
@@ -61,6 +65,7 @@ public class AuctionService {
         if (frameData == null) {
             return;
         }
+        this.clearOfflineRetryCount(frameData.getId());
         frameData.setSaleMode(SaleMode.INSTANT);
         frameData.clearAuctionState();
         this.freeframe.getFrameRegistry().saveToConfig();
@@ -122,6 +127,7 @@ public class AuctionService {
 
     private void settle(FreeFrameData frameData) {
         if (frameData.getHighestBid() <= 0.0D || frameData.getHighestBidderUuid() == null || frameData.getHighestBidderUuid().isEmpty()) {
+            this.clearOfflineRetryCount(frameData.getId());
             frameData.setSaleMode(SaleMode.INSTANT);
             frameData.clearAuctionState();
             this.freeframe.getFrameRegistry().saveToConfig();
@@ -136,6 +142,18 @@ public class AuctionService {
         }
 
         if (winner == null || !winner.isOnline()) {
+            int retries = this.incrementOfflineRetryCount(frameData.getId());
+            int maxRetries = Math.max(0, this.freeframe.cfgInt(FreeFrameConfigKey.FREEFRAME_AUCTION_OFFLINEMAXEXTENSIONS));
+            if (retries > maxRetries) {
+                this.freeframe.getAlertService().alertAuctionIssue(frameData.getId(), "winner-offline-max-retries");
+                this.clearOfflineRetryCount(frameData.getId());
+                frameData.setSaleMode(SaleMode.INSTANT);
+                frameData.clearAuctionState();
+                this.freeframe.getFrameRegistry().saveToConfig();
+                this.freeframe.getDisplayService().refresh(frameData);
+                return;
+            }
+
             this.freeframe.getAlertService().alertAuctionIssue(frameData.getId(), "winner-offline");
             frameData.setAuctionEndAt(System.currentTimeMillis() + Math.max(60_000L, this.freeframe.cfgLong(FreeFrameConfigKey.FREEFRAME_AUCTION_OFFLINEGRACEMILLIS)));
             this.freeframe.getFrameRegistry().saveToConfig();
@@ -143,16 +161,8 @@ public class AuctionService {
         }
 
         if (frameData.getStock() <= 0) {
+            this.clearOfflineRetryCount(frameData.getId());
             this.freeframe.getAlertService().alertAuctionIssue(frameData.getId(), "out-of-stock");
-            frameData.setSaleMode(SaleMode.INSTANT);
-            frameData.clearAuctionState();
-            this.freeframe.getFrameRegistry().saveToConfig();
-            return;
-        }
-
-        EconomyChargeResult charge = this.freeframe.getEconomyService().charge(winner, frameData.getHighestBid());
-        if (charge.getStatus() != EconomyChargeResult.Status.SUCCESS) {
-            this.freeframe.getAlertService().alertAuctionIssue(frameData.getId(), "charge-failed");
             frameData.setSaleMode(SaleMode.INSTANT);
             frameData.clearAuctionState();
             this.freeframe.getFrameRegistry().saveToConfig();
@@ -163,6 +173,7 @@ public class AuctionService {
         try {
             material = Material.valueOf(frameData.getItemType().toUpperCase(Locale.ENGLISH));
         } catch (Exception exception) {
+            this.clearOfflineRetryCount(frameData.getId());
             this.freeframe.getAlertService().alertAuctionIssue(frameData.getId(), "invalid-item-type");
             frameData.setSaleMode(SaleMode.INSTANT);
             frameData.clearAuctionState();
@@ -170,8 +181,31 @@ public class AuctionService {
             return;
         }
 
+        this.clearOfflineRetryCount(frameData.getId());
+
+        EconomyChargeResult charge = this.freeframe.getEconomyService().charge(winner, frameData.getHighestBid());
+        if (charge.getStatus() != EconomyChargeResult.Status.SUCCESS) {
+            this.freeframe.getAlertService().alertAuctionIssue(frameData.getId(), "charge-failed");
+            frameData.setSaleMode(SaleMode.INSTANT);
+            frameData.clearAuctionState();
+            this.freeframe.getFrameRegistry().saveToConfig();
+            return;
+        }
+
         ItemStack reward = new ItemStack(material, 1);
-        winner.getInventory().addItem(reward);
+        Map<Integer, ItemStack> overflow = winner.getInventory().addItem(reward);
+        if (!overflow.isEmpty()) {
+            for (ItemStack overflowItem : overflow.values()) {
+                if (overflowItem != null && overflowItem.getType() != null && !"AIR".equals(overflowItem.getType().name())) {
+                    winner.getWorld().dropItemNaturally(winner.getLocation(), overflowItem);
+                }
+            }
+            winner.sendMessage(this.freeframe.getMessage(
+                "freeframe.purchase.inventoryDrop",
+                "%prefix% &eYour inventory was full. Remaining items were dropped.",
+                winner
+            ));
+        }
         frameData.consumeStock(1);
         frameData.addRevenue(frameData.getHighestBid());
         this.freeframe.getStatisticsService().recordPurchase(winner, frameData, 1, frameData.getHighestBid());
@@ -181,6 +215,23 @@ public class AuctionService {
         frameData.clearAuctionState();
         this.freeframe.getFrameRegistry().saveToConfig();
         this.freeframe.getDisplayService().refresh(frameData);
+    }
+
+    private int incrementOfflineRetryCount(String frameId) {
+        if (frameId == null || frameId.trim().isEmpty()) {
+            return 1;
+        }
+        Integer current = this.offlineRetryCountByFrame.get(frameId);
+        int next = current == null ? 1 : current.intValue() + 1;
+        this.offlineRetryCountByFrame.put(frameId, Integer.valueOf(next));
+        return next;
+    }
+
+    private void clearOfflineRetryCount(String frameId) {
+        if (frameId == null || frameId.trim().isEmpty()) {
+            return;
+        }
+        this.offlineRetryCountByFrame.remove(frameId);
     }
 
     private static String format(double value) {

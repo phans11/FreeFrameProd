@@ -9,6 +9,7 @@ import de.isolveproblems.freeframe.FreeFrame;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -100,11 +101,7 @@ public class DashboardServer {
             return true;
         }
         String query = exchange.getRequestURI().getRawQuery();
-        if (query == null) {
-            return false;
-        }
-        String expected = "token=" + token;
-        return query.contains(expected);
+        return tokenMatches(query, token.trim());
     }
 
     private static String escape(String value) {
@@ -112,6 +109,45 @@ public class DashboardServer {
             return "";
         }
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    static boolean tokenMatches(String rawQuery, String expectedToken) {
+        if (expectedToken == null || expectedToken.trim().isEmpty()) {
+            return true;
+        }
+        String actual = queryParam(rawQuery, "token");
+        return expectedToken.equals(actual);
+    }
+
+    static String queryParam(String rawQuery, String key) {
+        if (rawQuery == null || rawQuery.trim().isEmpty() || key == null || key.trim().isEmpty()) {
+            return null;
+        }
+        String[] parts = rawQuery.split("&");
+        for (String part : parts) {
+            if (part == null || part.isEmpty()) {
+                continue;
+            }
+            int separator = part.indexOf('=');
+            String rawKey = separator >= 0 ? part.substring(0, separator) : part;
+            if (!key.equals(urlDecode(rawKey))) {
+                continue;
+            }
+            String rawValue = separator >= 0 ? part.substring(separator + 1) : "";
+            return urlDecode(rawValue);
+        }
+        return null;
+    }
+
+    private static String urlDecode(String value) {
+        if (value == null) {
+            return "";
+        }
+        try {
+            return URLDecoder.decode(value, "UTF-8");
+        } catch (Exception ignored) {
+            return value;
+        }
     }
 
     private static class JsonHandler implements HttpHandler {

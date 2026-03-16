@@ -171,6 +171,9 @@ public class ConfigurationMessages {
         if (config.getInt("freeframe.dynamicPricing.demandThreshold", 5) < 1) {
             config.set("freeframe.dynamicPricing.demandThreshold", 5);
         }
+        if (config.getInt("freeframe.auction.offlineMaxExtensions", 3) < 0) {
+            config.set("freeframe.auction.offlineMaxExtensions", 3);
+        }
 
         if (config.getLong("freeframe.security.idempotencyBucketMillis", 1500L) < 250L) {
             config.set("freeframe.security.idempotencyBucketMillis", 1500L);

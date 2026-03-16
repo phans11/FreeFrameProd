@@ -103,10 +103,6 @@ public class FrameStorageService {
 
     public void flushAndShutdown() {
         StorageType type = this.resolveType();
-        if (type == StorageType.YAML) {
-            return;
-        }
-
         List<FreeFrameData> pending;
         synchronized (this.asyncLock) {
             pending = this.queuedSnapshot;
@@ -115,7 +111,13 @@ public class FrameStorageService {
         }
 
         if (pending != null && !pending.isEmpty()) {
-            this.saveToDatabase(type, pending);
+            if (type == StorageType.YAML) {
+                this.saveToYaml(pending);
+                return;
+            }
+            if (!this.saveToDatabase(type, pending)) {
+                this.saveToYaml(pending);
+            }
         }
     }
 
@@ -132,6 +134,10 @@ public class FrameStorageService {
             }
 
             StorageType type = this.resolveType();
+            if (type == StorageType.YAML) {
+                this.saveToYaml(snapshot);
+                continue;
+            }
             if (!this.saveToDatabase(type, snapshot)) {
                 this.freeframe.getLogger().warning("Async database save failed, writing YAML fallback.");
                 this.saveToYaml(snapshot);

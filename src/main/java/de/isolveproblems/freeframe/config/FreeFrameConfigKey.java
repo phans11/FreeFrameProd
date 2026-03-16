@@ -112,6 +112,7 @@ public enum FreeFrameConfigKey implements ConfigEntry {
     FREEFRAME_AUCTION_ENABLED("freeframe.auction.enabled", true),
     FREEFRAME_AUCTION_TICKINTERVALTICKS("freeframe.auction.tickIntervalTicks", 40L),
     FREEFRAME_AUCTION_OFFLINEGRACEMILLIS("freeframe.auction.offlineGraceMillis", 300000L),
+    FREEFRAME_AUCTION_OFFLINEMAXEXTENSIONS("freeframe.auction.offlineMaxExtensions", 3),
     FREEFRAME_ALERTS_ENABLED("freeframe.alerts.enabled", false),
     FREEFRAME_ALERTS_COOLDOWNMILLIS("freeframe.alerts.cooldownMillis", 120000L),
     FREEFRAME_ALERTS_LOWSTOCKTHRESHOLD("freeframe.alerts.lowStockThreshold", 5),
